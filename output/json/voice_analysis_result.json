@@ -1,0 +1,351 @@
+{
+    "scores_result": {
+        "total_score": 25,
+        "individual_scores": {
+            "pause_score": 20,
+            "speech_rate_score": 5
+        },
+        "details": {
+            "pause_ratio": 12.76,
+            "avg_speech_rate": 4.43
+        }
+    },
+    "speech_rate_result": [
+        {
+            "syllables_per_second": 2.0,
+            "start_time": 0.0,
+            "end_time": 1.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 1.0,
+            "end_time": 2.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 2.0,
+            "end_time": 3.0
+        },
+        {
+            "syllables_per_second": 6.0,
+            "start_time": 3.0,
+            "end_time": 4.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 4.0,
+            "end_time": 5.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 5.0,
+            "end_time": 6.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 6.0,
+            "end_time": 7.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 7.0,
+            "end_time": 8.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 8.0,
+            "end_time": 9.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 9.0,
+            "end_time": 10.0
+        },
+        {
+            "syllables_per_second": 6.0,
+            "start_time": 10.0,
+            "end_time": 11.0
+        },
+        {
+            "syllables_per_second": 2.0,
+            "start_time": 11.0,
+            "end_time": 12.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 12.0,
+            "end_time": 13.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 13.0,
+            "end_time": 14.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 14.0,
+            "end_time": 15.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 15.0,
+            "end_time": 16.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 16.0,
+            "end_time": 17.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 17.0,
+            "end_time": 18.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 18.0,
+            "end_time": 19.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 19.0,
+            "end_time": 20.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 20.0,
+            "end_time": 21.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 21.0,
+            "end_time": 22.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 22.0,
+            "end_time": 23.0
+        },
+        {
+            "syllables_per_second": 6.0,
+            "start_time": 23.0,
+            "end_time": 24.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 24.0,
+            "end_time": 25.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 25.0,
+            "end_time": 26.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 26.0,
+            "end_time": 27.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 27.0,
+            "end_time": 28.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 28.0,
+            "end_time": 29.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 29.0,
+            "end_time": 30.0
+        },
+        {
+            "syllables_per_second": 7.0,
+            "start_time": 30.0,
+            "end_time": 31.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 31.0,
+            "end_time": 32.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 32.0,
+            "end_time": 33.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 33.0,
+            "end_time": 34.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 34.0,
+            "end_time": 35.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 35.0,
+            "end_time": 36.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 36.0,
+            "end_time": 37.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 37.0,
+            "end_time": 38.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 38.0,
+            "end_time": 39.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 39.0,
+            "end_time": 40.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 40.0,
+            "end_time": 41.0
+        },
+        {
+            "syllables_per_second": 6.0,
+            "start_time": 41.0,
+            "end_time": 42.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 42.0,
+            "end_time": 43.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 43.0,
+            "end_time": 44.0
+        },
+        {
+            "syllables_per_second": 7.0,
+            "start_time": 44.0,
+            "end_time": 45.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 45.0,
+            "end_time": 46.0
+        },
+        {
+            "syllables_per_second": 6.0,
+            "start_time": 46.0,
+            "end_time": 47.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 47.0,
+            "end_time": 48.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 48.0,
+            "end_time": 49.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 49.0,
+            "end_time": 50.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 50.0,
+            "end_time": 51.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 51.0,
+            "end_time": 52.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 52.0,
+            "end_time": 53.0
+        },
+        {
+            "syllables_per_second": 7.0,
+            "start_time": 53.0,
+            "end_time": 54.0
+        },
+        {
+            "syllables_per_second": 3.0,
+            "start_time": 54.0,
+            "end_time": 55.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 55.0,
+            "end_time": 56.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 56.0,
+            "end_time": 57.0
+        },
+        {
+            "syllables_per_second": 7.0,
+            "start_time": 57.0,
+            "end_time": 58.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 58.0,
+            "end_time": 59.0
+        },
+        {
+            "syllables_per_second": 5.0,
+            "start_time": 59.0,
+            "end_time": 60.0
+        },
+        {
+            "syllables_per_second": 4.0,
+            "start_time": 60.0,
+            "end_time": 61.0
+        },
+        {
+            "syllables_per_second": 4.411764705882352,
+            "start_time": 61.0,
+            "end_time": 61.7
+        }
+    ],
+    "pause_analysis_result": {
+        "total_duration": 61.68,
+        "pause_duration": 7.872000000000009,
+        "pause_ratio": 12.7626459143969,
+        "pause_count": 10,
+        "grade": "우수",
+        "description": "전달력이 높음 (논문 기준: 14.8%~15.9%)",
+        "pause_segments": [
+            0.7360000000000001,
+            0.7999999999999998,
+            0.7680000000000007,
+            0.8640000000000008,
+            0.6400000000000006,
+            0.9600000000000009,
+            0.5120000000000005,
+            0.5760000000000005,
+            0.6400000000000006,
+            1.3760000000000048
+        ]
+    },
+    "summary": {
+        "total_segments": 62,
+        "avg_speech_rate": 4.43,
+        "pause_ratio": 12.76,
+        "total_score": 25
+    }
+}

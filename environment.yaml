@@ -1,0 +1,55 @@
+name: ko_pipeline
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.11
+  - pip
+  - ffmpeg
+  - pytorch
+  - torchaudio
+  - pip:
+    # 음성 분석 관련
+    - librosa
+    - numpy
+    - praat-parselmouth
+    - pandas
+    - soundfile
+    - pydub
+    - transformers
+    - speechbrain
+    - scipy
+    - matplotlib
+    
+    # FastAPI 서버
+    - fastapi
+    - uvicorn[standard]
+    - python-multipart
+    
+    # 비동기 Database 드라이버
+    - motor
+    - aiomysql
+    - pymongo
+    - mysql-connector-python
+    - sqlalchemy
+    
+    # AI/ML
+    - openai
+    - openai-whisper
+    
+    # File handling & Cloud
+    - boto3
+    - botocore
+    - ffmpeg-python
+    
+    # Environment & Utils
+    - python-dotenv
+    - aiofiles
+    - httpx
+    - requests
+    
+    # 추가 유틸리티
+    - pydantic
+    - typing-extensions
+    - loguru 

@@ -1,0 +1,54 @@
+# ----------------------------------------------------------------------------------------------------
+# 작성목적 : 프로젝트 필수 라이브러리 정의
+# 작성일 : 2025-05-31
+
+# 변경사항 내역 (날짜 | 변경목적 | 변경내용 | 작성자 순으로 기입)
+# 2025-05-31 | 최초 구현 | 프로젝트에서 사용되는 외부 라이브러리 목록 작성 | 구동빈
+# 2024-01-XX | FastAPI 서버 구현 | FastAPI, MongoDB, MariaDB, Whisper, OpenAI, S3 연동 라이브러리 추가 | 시스템
+# ----------------------------------------------------------------------------------------------------
+
+# 음성 분석 관련
+librosa
+numpy
+praat-parselmouth
+pandas
+soundfile
+pydub
+torch
+transformers
+speechbrain
+scipy
+matplotlib
+
+# FastAPI 서버
+fastapi
+uvicorn[standard]
+python-multipart
+
+# 비동기 Database 드라이버
+motor  # 비동기 MongoDB 드라이버
+aiomysql  # 비동기 MySQL/MariaDB 드라이버
+pymongo  # MongoDB 동기 드라이버 (백업용)
+mysql-connector-python  # MySQL 동기 드라이버 (백업용)
+sqlalchemy
+
+# AI/ML
+openai
+openai-whisper
+
+# File handling & Cloud
+boto3
+botocore
+ffmpeg-python
+
+# Environment & Utils
+python-dotenv
+aiofiles
+httpx
+requests
+
+# 추가 유틸리티
+pydantic  # FastAPI 데이터 검증
+typing-extensions
+loguru  # 향상된 로깅 (선택사항)
+PyYAML  # YAML 파일 파싱 
