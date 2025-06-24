@@ -163,7 +163,6 @@ class MariaDBService:
                 ANS_SCORE_ID BIGINT NOT NULL COMMENT '답변 평가 ID',
                 INTV_ANS_ID BIGINT NOT NULL COMMENT '면접 답변 ID',
                 ANS_SUMMARY TEXT NULL COMMENT '답변 요약',
-                EVAL_COMMENT TEXT NULL COMMENT '답변 평가',
                 EVAL_SUMMARY TEXT NULL COMMENT '전체 평가 요약',
                 INCOMPLETE_ANSWER BOOLEAN NULL DEFAULT FALSE COMMENT '미완료 여부',
                 INSUFFICIENT_CONTENT BOOLEAN NULL DEFAULT FALSE COMMENT '내용 부족 여부',
@@ -186,7 +185,6 @@ class MariaDBService:
                 'ANS_SCORE_ID': "BIGINT NOT NULL COMMENT '답변 평가 ID'",
                 'INTV_ANS_ID': "BIGINT NOT NULL COMMENT '면접 답변 ID'", 
                 'ANS_SUMMARY': "TEXT NULL COMMENT '답변 요약'",
-                'EVAL_COMMENT': "TEXT NULL COMMENT '답변 평가'",
                 'EVAL_SUMMARY': "TEXT NULL COMMENT '전체 평가 요약'",
                 'INCOMPLETE_ANSWER': "BOOLEAN NULL DEFAULT FALSE COMMENT '미완료 여부'",
                 'INSUFFICIENT_CONTENT': "BOOLEAN NULL DEFAULT FALSE COMMENT '내용 부족 여부'",
@@ -297,8 +295,6 @@ class MariaDBService:
                         a.ANS_SCORE_ID,
                         a.INTV_ANS_ID,
                         a.ANS_SUMMARY,
-                        a.EVAL_COMMENT,
-                        a.EVAL_SUMMARY,
                         a.RGS_DTM,
                         c.EVAL_CAT_CD,
                         c.ANS_CAT_SCORE,
@@ -333,8 +329,6 @@ class MariaDBService:
                                 'ANS_SCORE_ID': row['ANS_SCORE_ID'],
                                 'INTV_ANS_ID': row['INTV_ANS_ID'],
                                 'ANS_SUMMARY': row['ANS_SUMMARY'],
-                                'EVAL_COMMENT': row['EVAL_COMMENT'],
-                                'EVAL_SUMMARY': row['EVAL_SUMMARY'],
                                 'RGS_DTM': row['RGS_DTM'],
                                 'categories': []
                             }
@@ -356,7 +350,7 @@ class MariaDBService:
             return []
 
     async def save_answer_evaluation(self, user_id: str, question_num: int, 
-                                   answer_summary: str, evaluation_comment: str,
+                                   answer_summary: str,
                                    category_results: Dict[str, Dict[str, Any]]) -> bool:
         """답변 평가 결과를 MariaDB에 저장"""
         max_retry = 2
@@ -379,17 +373,19 @@ class MariaDBService:
                             # answer_score 테이블에 기본 평가 정보 저장
                             insert_answer_score_sql = """
                             INSERT INTO answer_score (
-                                ANS_SCORE_ID, INTV_ANS_ID, ANS_SUMMARY, EVAL_COMMENT, EVAL_SUMMARY
-                            ) VALUES (%s, %s, %s, %s, %s)
+                                ANS_SCORE_ID, INTV_ANS_ID, ANS_SUMMARY, INCOMPLETE_ANSWER, INSUFFICIENT_CONTENT, SUSPECTED_COPYING, SUSPECTED_IMPERSONATION
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
                             ON DUPLICATE KEY UPDATE
                                 ANS_SUMMARY = VALUES(ANS_SUMMARY),
-                                EVAL_COMMENT = VALUES(EVAL_COMMENT),
-                                EVAL_SUMMARY = VALUES(EVAL_SUMMARY),
+                                INCOMPLETE_ANSWER = VALUES(INCOMPLETE_ANSWER),
+                                INSUFFICIENT_CONTENT = VALUES(INSUFFICIENT_CONTENT),
+                                SUSPECTED_COPYING = VALUES(SUSPECTED_COPYING),
+                                SUSPECTED_IMPERSONATION = VALUES(SUSPECTED_IMPERSONATION),
                                 UPD_DTM = CURRENT_TIMESTAMP
                             """
                             
                             await cursor.execute(insert_answer_score_sql, (
-                                ans_score_id, intv_ans_id, answer_summary, evaluation_comment, ""
+                                ans_score_id, intv_ans_id, answer_summary, False, False, False, False
                             ))
                             logger.info(f"answer_score 저장 완료")
                             

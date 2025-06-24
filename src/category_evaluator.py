@@ -86,8 +86,7 @@ class CategoryEvaluator:
                         'weakness_keyword': ', '.join(improvements) if improvements else '',
                         'detailed_feedback': comm_result.get('detailed_feedback', {}),
                         'total_text_score': comm_result.get('total_text_score', 60),
-                        'feedback': feedback,
-                        'evaluation_comment': comm_result.get('evaluation_comment', '')
+                        'feedback': feedback
                     }
                 else:
                     # 다른 카테고리들은 GPT로 평가
@@ -141,7 +140,6 @@ class CategoryEvaluator:
                         'total_text_score': max(0, min(60, result.get('total_text_score', 30))),
                         'detailed_scores': result.get('detailed_scores', {}),
                         'feedback': result.get('feedback', {}),
-                        'evaluation_comment': result.get('evaluation_comment', ''),
                         'score': max(0, min(60, result.get('total_text_score', 30)))  # 호환성을 위해 추가
                     }
                 else:
@@ -232,8 +230,7 @@ class CategoryEvaluator:
     "feedback": {
         "strengths": ["강점1", "강점2"],
         "improvements": ["개선점1", "개선점2"]
-    },
-    "evaluation_comment": "종합 평가 코멘트"
+    }
 }
 """
             else:
@@ -383,7 +380,6 @@ class CategoryEvaluator:
                     'strengths': [],
                     'improvements': []
                 },
-                'evaluation_comment': '',
                 'score': 0
             }
         else:
@@ -437,61 +433,4 @@ class CategoryEvaluator:
             
         except Exception as e:
             logger.error(f"답변 요약 생성 중 오류: {e}")
-            return ""
-    
-    async def generate_evaluation_comment(self, stt_text: str, category_results: Dict[str, Dict]) -> str:
-        """
-        답변 평가 코멘트 생성 (GPT 활용)
-        
-        Args:
-            stt_text: STT 변환된 텍스트
-            category_results: 카테고리별 평가 결과
-            
-        Returns:
-            str: 평가 코멘트
-        """
-        try:
-            # 발화 없음 처리
-            evaluation_text = stt_text.strip() if stt_text.strip() else "발화 없음 (무응답)"
-            no_speech_note = ""
-            if evaluation_text == "발화 없음 (무응답)":
-                no_speech_note = "\n\n**주의: 발화가 없는 경우이므로 무응답에 대한 평가 코멘트를 작성해주세요.**"
-            
-            categories_summary = []
-            for category, result in category_results.items():
-                cat_name = self._get_category_name(category)
-                score = result.get('score', 0)
-                strength = result.get('strength_keyword', '')
-                categories_summary.append(f"{cat_name}: {score}점 (강점: {strength})")
-            
-            prompt = f"""
-다음 면접 답변과 평가 결과를 바탕으로 종합적인 평가 코멘트를 작성해주세요:
-
-답변 내용:
-"{evaluation_text}"{no_speech_note}
-
-카테고리별 평가:
-{chr(10).join(categories_summary)}
-
-평가 코멘트 작성 지침:
-- 전반적인 답변의 장점과 개선점을 균형있게 서술
-- 구체적이고 건설적인 피드백 제공
-- 면접관의 관점에서 전문적이고 객관적인 톤 유지
-- 3-4문장으로 간결하게 작성
-"""
-            
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "당신은 면접 평가 전문가입니다."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                max_tokens=800
-            )
-            
-            return response.choices[0].message.content.strip()
-            
-        except Exception as e:
-            logger.error(f"평가 코멘트 생성 중 오류: {e}")
             return ""

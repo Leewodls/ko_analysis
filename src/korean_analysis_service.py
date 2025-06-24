@@ -170,27 +170,11 @@ class KoreanAnalysisService:
                 logger.info(f"      강점: {result['strength_keyword']}")
                 logger.info(f"      약점: {result['weakness_keyword']}")
             
-            # 7. 답변 요약 및 평가 코멘트 생성
-            logger.info("\n7단계: 답변 요약 및 평가 코멘트 생성 중...")
-            answer_summary = await self.category_evaluator.generate_answer_summary(transcript)
-            eval_comment = await self.category_evaluator.generate_evaluation_comment(transcript, category_results)
-            
-            # 전체 평가 요약 생성
-            if len(category_results) > 0:
-                avg_score = sum(result['score'] for result in category_results.values()) / len(category_results)
-                if avg_score >= 80:
-                    eval_summary = "우수한 면접 답변으로 전 영역에서 높은 점수"
-                elif avg_score >= 70:
-                    eval_summary = "양호한 면접 답변으로 대부분 영역에서 적절한 수준"
-                elif avg_score >= 60:
-                    eval_summary = "보통 수준의 면접 답변으로 일부 개선 필요"
-                else:
-                    eval_summary = "전반적인 개선이 필요한 면접 답변"
-            else:
-                avg_score = 0
-                eval_summary = "카테고리 평가 결과가 없어 평가를 완료할 수 없습니다"
-            
-            logger.info("  요약 및 코멘트 생성 완료")
+            # 7. 기존 방식으로 의사소통 점수에 텍스트 점수 반영
+            logger.info("\n7단계: 의사소통 최종 점수 계산 중...")
+            total_voice_score = ko_score
+            total_text_score = text_communication_score
+            communication_score = total_voice_score + total_text_score
             
             # 8. MongoDB에 기존 방식대로 저장 (속도, 휴지, 의사소통능력 점수)
             logger.info("\n8단계: MongoDB에 한국어 분석 결과 저장 중...")
@@ -199,8 +183,7 @@ class KoreanAnalysisService:
             text_scores = {
                 'total_text_score': text_communication_score,
                 'detailed_scores': communication_result.get('detailed_scores', {}),
-                'feedback': communication_result.get('feedback', {}),
-                'evaluation_comment': communication_result.get('evaluation_comment', '')
+                'feedback': communication_result.get('feedback', {})
             }
             
             await self._save_scores_to_mongodb(
@@ -218,11 +201,14 @@ class KoreanAnalysisService:
             
             # 9. 새로운 테이블에 카테고리별 평가 저장
             logger.info("\n9단계: MariaDB에 카테고리별 평가 저장 중...")
+            
+            # 답변 요약 생성
+            answer_summary = await self.category_evaluator.generate_answer_summary(transcript)
+            
             success = await self.mariadb_service.save_answer_evaluation(
                 user_id=user_id,
                 question_num=question_num,
                 answer_summary=answer_summary,
-                evaluation_comment=eval_comment,
                 category_results=category_results
             )
             
@@ -242,8 +228,7 @@ class KoreanAnalysisService:
                 text_details=text_scores,
                 category_results=category_results,
                 stt_text=transcript,
-                answer_summary=answer_summary,
-                evaluation_comment=eval_comment
+                answer_summary=answer_summary
             )
             
             if mongo_success:
@@ -261,8 +246,7 @@ class KoreanAnalysisService:
                 'text_details': text_scores,
                 'category_results': category_results,
                 'stt_text': transcript,
-                'answer_summary': answer_summary,
-                'evaluation_comment': eval_comment
+                'answer_summary': answer_summary
             }
             
         except Exception as e:

@@ -68,8 +68,7 @@ class MongoDBService:
                                           text_details: Dict[str, Any],
                                           category_results: Dict[str, Any],
                                           stt_text: str,
-                                          answer_summary: str,
-                                          evaluation_comment: str) -> bool:
+                                          answer_summary: str) -> bool:
         """
         한국어 분석 결과를 MongoDB에 저장
         
@@ -84,7 +83,6 @@ class MongoDBService:
             category_results: 카테고리 평가 결과
             stt_text: STT 변환 텍스트
             answer_summary: 답변 요약
-            evaluation_comment: 평가 코멘트
             
         Returns:
             bool: 저장 성공 여부
@@ -102,7 +100,6 @@ class MongoDBService:
                 "category_results": category_results,
                 "stt_text": stt_text,
                 "answer_summary": answer_summary,
-                "evaluation_comment": evaluation_comment,
                 "analysis_timestamp": datetime.utcnow()
             }
             
