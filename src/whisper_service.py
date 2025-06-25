@@ -1,6 +1,10 @@
-"""
-Whisper STT 변환 서비스
-"""
+# ----------------------------------------------------------------------------------------------------
+# 작성목적 : Whisper STT 변환 서비스
+# 작성일 : 2025-06-25
+
+# 변경사항 내역 (날짜 | 변경목적 | 변경내용 | 작성자 순으로 기입)
+# 알수없음 | 최초 구현 | Whisper STT 변환 서비스 | 이재인
+# ----------------------------------------------------------------------------------------------------
 
 import os
 import logging
@@ -13,7 +17,7 @@ logger = logging.getLogger(__name__)
 class WhisperService:
     """Whisper STT 변환 서비스"""
     
-    def __init__(self, model_name: str = "base"):
+    def __init__(self, model_name: str = "small"):
         """
         Args:
             model_name: Whisper 모델 크기 (tiny, base, small, medium, large)

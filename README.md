@@ -99,9 +99,9 @@ python app.py
 ```
 
 ### 4. 서버 접속
-- **기본 주소**: http://localhost:8001
-- **API 문서**: http://localhost:8001/docs
-- **ReDoc**: http://localhost:8001/redoc
+- **기본 주소**: http://localhost:8004
+- **API 문서**: http://localhost:8004/docs
+- **ReDoc**: http://localhost:8004/redoc
 
 ### 5. 환경 관리
 
