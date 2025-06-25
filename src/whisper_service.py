@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class WhisperService:
     """Whisper STT 변환 서비스"""
     
-    def __init__(self, model_name: str = "base"):
+    def __init__(self, model_name: str = "small"):
         """
         Args:
             model_name: Whisper 모델 크기 (tiny, base, small, medium, large)
