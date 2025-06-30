@@ -75,18 +75,14 @@ class CategoryEvaluator:
                     # 의사소통 능력도 GPT로 평가하여 동적 키워드 생성
                     comm_result = await self._evaluate_single_category(evaluation_text, category, question_num)
                     
-                    # 기존 점수는 유지하되, GPT 분석 결과의 키워드만 사용
-                    feedback = comm_result.get('feedback', {})
-                    strengths = feedback.get('strengths', [])
-                    improvements = feedback.get('improvements', [])
-                    
+                    # 기존 점수는 유지하되, GPT 분석 결과의 키워드는 그대로 사용
                     results[category] = {
-                        'score': communication_score,
-                        'strength_keyword': ', '.join(strengths) if strengths else '',
-                        'weakness_keyword': ', '.join(improvements) if improvements else '',
+                        'score': communication_score,  # 기존 계산된 점수 사용
+                        'strength_keyword': comm_result.get('strength_keyword', ''),
+                        'weakness_keyword': comm_result.get('weakness_keyword', ''),
                         'detailed_feedback': comm_result.get('detailed_feedback', {}),
-                        'total_text_score': comm_result.get('total_text_score', 60),
-                        'feedback': feedback
+                        'total_text_score': comm_result.get('score', 60),  # GPT 평가 점수
+                        'feedback': comm_result.get('detailed_feedback', {})
                     }
                 else:
                     # 다른 카테고리들은 GPT로 평가
@@ -130,7 +126,14 @@ class CategoryEvaluator:
             
             result_text = response.choices[0].message.content
             
-            # JSON 파싱 시도
+            # 출력 형식에 따른 파싱
+            output_format = self.category_output_formats.get(category, {})
+            
+            # structured_feedback 형식 처리
+            if output_format.get('type') == 'structured_feedback':
+                return self._parse_structured_feedback(result_text, category)
+            
+            # JSON 파싱 시도 (기본 형식)
             try:
                 result = json.loads(result_text)
                 
@@ -214,10 +217,21 @@ class CategoryEvaluator:
         """
         output_format = self.category_output_formats.get(category, {})
         
-        if not output_format or output_format.get('type') != 'json':
-            # 기본 JSON 형태
-            if category == 'COMMUNICATION':
-                return """
+        # YAML에서 정의된 출력 형태가 있는 경우 (structured_feedback 포함)
+        if output_format and 'structure' in output_format:
+            structure = output_format.get('structure', {})
+            style_guide = output_format.get('style_guide', '')
+            
+            # structured_feedback 타입에 대한 특별한 처리
+            if output_format.get('type') == 'structured_feedback':
+                return self._build_structured_feedback_format(structure, style_guide)
+            else:
+                # 기존 JSON 구조 처리
+                return self._build_json_format_from_structure(structure)
+        
+        # 기본 JSON 형태 (YAML 정의가 없는 경우)
+        if category == 'COMMUNICATION':
+            return """
 응답은 반드시 다음 JSON 형식으로 작성해주세요:
 {
     "total_text_score": [0-60 점수],
@@ -233,8 +247,8 @@ class CategoryEvaluator:
     }
 }
 """
-            else:
-                return """
+        else:
+            return """
 응답은 반드시 다음 JSON 형식으로 작성해주세요:
 {
     "score": [0-100 점수],
@@ -242,10 +256,98 @@ class CategoryEvaluator:
     "weakness_keyword": "[약점을 나타내는 키워드나 문구]"
 }
 """
+    
+    def _build_structured_feedback_format(self, structure: dict, style_guide: str) -> str:
+        """
+        structured_feedback 타입에 대한 출력 형태 지시문 생성
         
-        # YAML에서 정의된 출력 형태 사용
-        structure = output_format.get('structure', {})
-        return self._build_json_format_from_structure(structure)
+        Args:
+            structure: YAML에서 정의된 구조
+            style_guide: 스타일 가이드
+            
+        Returns:
+            str: 출력 형태 지시문
+        """
+        output_instruction = "응답은 반드시 다음 형식으로 작성해주세요:\n\n"
+        
+        for key, value in structure.items():
+            if key == 'total_score':
+                output_instruction += f"{value.get('format', '평가총점 : [총점 숫자만 기재]')}\n\n"
+            elif key == 'strengths':
+                output_instruction += value.get('format', 
+                    "강점:\n[각 줄은 한 줄씩 줄바꿈해줘]\n[답변 내용에서 드러난 구체적 경험이나 특징을 포함한 키워드로 작성해줘]\n") + "\n\n"
+            elif key == 'weaknesses':
+                output_instruction += value.get('format', 
+                    "약점:\n[강점과 동일한 형식]\n[답변에서 부족한 부분이나 개선점을 구체적 맥락과 함께 키워드화]\n") + "\n\n"
+        
+        if style_guide:
+            output_instruction += f"스타일 가이드:\n{style_guide}\n"
+        
+        return output_instruction
+    
+    def _parse_structured_feedback(self, result_text: str, category: str) -> Dict[str, Any]:
+        """
+        structured_feedback 형식의 GPT 응답을 파싱
+        
+        Args:
+            result_text: GPT 응답 텍스트
+            category: 카테고리명
+            
+        Returns:
+            Dict[str, Any]: 파싱된 결과
+        """
+        try:
+            import re
+            
+            # 점수 추출
+            score_pattern = r'평가총점\s*[:：]\s*(\d+)'
+            score_match = re.search(score_pattern, result_text)
+            score = int(score_match.group(1)) if score_match else 0
+            
+            # 강점 추출
+            strengths = []
+            strengths_pattern = r'강점:\s*((?:\n.*?)*?)(?=약점:|$)'
+            strengths_match = re.search(strengths_pattern, result_text, re.DOTALL)
+            if strengths_match:
+                strengths_text = strengths_match.group(1).strip()
+                # 각 줄을 분리하여 빈 줄과 불필요한 텍스트 제거
+                for line in strengths_text.split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith('[') and not line.startswith('각'):
+                        # 앞의 불릿 포인트나 숫자 제거
+                        line = re.sub(r'^[-*•\d\.\)\s]+', '', line).strip()
+                        if line:
+                            strengths.append(line)
+            
+            # 약점 추출
+            weaknesses = []
+            weaknesses_pattern = r'약점:\s*((?:\n.*?)*?)(?=$)'
+            weaknesses_match = re.search(weaknesses_pattern, result_text, re.DOTALL)
+            if weaknesses_match:
+                weaknesses_text = weaknesses_match.group(1).strip()
+                # 각 줄을 분리하여 빈 줄과 불필요한 텍스트 제거
+                for line in weaknesses_text.split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith('[') and not line.startswith('강점'):
+                        # 앞의 불릿 포인트나 숫자 제거
+                        line = re.sub(r'^[-*•\d\.\)\s]+', '', line).strip()
+                        if line:
+                            weaknesses.append(line)
+            
+            return {
+                'score': max(0, min(100, score)),
+                'strength_keyword': ', '.join(strengths) if strengths else '',
+                'weakness_keyword': ', '.join(weaknesses) if weaknesses else '',
+                'detailed_feedback': {
+                    'strengths': strengths,
+                    'weaknesses': weaknesses,
+                    'total_score': score
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"{category} structured_feedback 파싱 중 오류: {e}")
+            return self._get_default_category_result(category)
     
     def _build_json_format_from_structure(self, structure: dict, indent: int = 0) -> str:
         """
