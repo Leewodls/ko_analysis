@@ -48,9 +48,6 @@ class KoreanAnalysisService:
             # MariaDB 연결  
             await self.mariadb_service.connect()
             
-            # Whisper 모델 로드
-            await self.whisper_service.load_model()
-            
             # 임시 디렉토리 생성
             self.temp_dir = tempfile.mkdtemp(prefix="korean_analysis_")
             
@@ -133,7 +130,7 @@ class KoreanAnalysisService:
             
             # 4. Whisper STT 변환
             logger.info("\n4단계: Whisper STT 변환 중...")
-            transcript = await self.whisper_service.transcribe(wav_file_path)
+            transcript = self.whisper_service.transcribe(wav_file_path)
             logger.info(f"  STT 변환 완료: {len(transcript)}자 텍스트 생성")
             if len(transcript) > 50:
                 logger.info(f"  변환된 텍스트 미리보기: {transcript[:50]}...")
