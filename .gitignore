@@ -3,5 +3,4 @@
 __pycache__
 pipeline.log
 wav2vec2_checkpoints
-data.zip
-model.zip
+
