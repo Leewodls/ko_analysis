@@ -96,6 +96,8 @@ run_pipeline.bat
 # conda 환경 활성화 후
 conda activate ko_pipeline
 python app.py
+# 또는
+uvicorn app:app --reload --port 8004
 ```
 
 ### 4. 서버 접속
