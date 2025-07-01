@@ -29,7 +29,7 @@ class CategoryEvaluator:
             4: ['COMMUNICATION', 'ORG_FIT', 'JOB_COMPATIBILITY', 'TECH_STACK', 'PROBLEM_SOLVING'],
             5: ['COMMUNICATION', 'ORG_FIT', 'JOB_COMPATIBILITY', 'TECH_STACK', 'PROBLEM_SOLVING'],
             6: ['COMMUNICATION', 'ORG_FIT', 'JOB_COMPATIBILITY'],
-            7: ['COMMUNICATION', 'ORG_FIT', 'PROBLEM_SOLVING']
+            7: ['COMMUNICATION', 'PROBLEM_SOLVING']
         }
         
         # 카테고리별 YAML 파일 매핑
@@ -126,6 +126,26 @@ class CategoryEvaluator:
             
             result_text = response.choices[0].message.content
             
+            # 직무적합도 카테고리인 경우 GPT 응답 로깅 및 파일 저장
+            if category == 'JOB_COMPATIBILITY':
+                logger.info(f"직무적합도 GPT 응답 길이: {len(result_text)}자")
+                logger.info(f"직무적합도 GPT 응답:\n{result_text}")
+                
+                # 디버깅용 응답 저장
+                try:
+                    import tempfile
+                    import os
+                    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as f:
+                        f.write(f"=== 직무적합도 GPT 응답 ===\n")
+                        f.write(result_text)
+                        f.write(f"\n\n=== 응답 분석 ===\n")
+                        f.write(f"길이: {len(result_text)}자\n")
+                        f.write(f"'기술적 전문성' 포함: {'기술적 전문성' in result_text}\n")
+                        f.write(f"'세부평가' 포함: {'세부평가' in result_text}\n")
+                        logger.info(f"GPT 응답 저장됨: {f.name}")
+                except Exception as e:
+                    logger.error(f"GPT 응답 저장 실패: {e}")
+            
             # 출력 형식에 따른 파싱
             output_format = self.category_output_formats.get(category, {})
             
@@ -176,6 +196,20 @@ class CategoryEvaluator:
         
         # 출력 형태를 동적으로 생성
         output_format_text = self._generate_output_format_instruction(category)
+        
+        # 직무적합도의 경우 출력 형태 지시문 로깅
+        if category == 'JOB_COMPATIBILITY':
+            logger.info(f"직무적합도 출력 형태 지시문 길이: {len(output_format_text)}자")
+            # 새로운 형식과 구형 형식 모두 체크
+            has_new_format = ('기술적전문성_' in output_format_text or 'detailed_scores' in output_format_text)
+            has_old_format = '기술적 전문성' in output_format_text
+            
+            if has_new_format:
+                logger.info("출력 형태 지시문에 '세부 항목별 평가' 형식 포함됨")
+            elif has_old_format:
+                logger.info("출력 형태 지시문에 '기술적 전문성' (구형) 포함됨")
+            else:
+                logger.warning("출력 형태 지시문에 '세부 항목별 평가' 형식 누락됨")
         
         # 발화 없음 처리 지침
         no_speech_instruction = ""
@@ -271,8 +305,16 @@ class CategoryEvaluator:
         output_instruction = "응답은 반드시 다음 형식으로 작성해주세요:\n\n"
         
         for key, value in structure.items():
-            if key == 'total_score':
-                output_instruction += f"{value.get('format', '평가총점 : [총점 숫자만 기재]')}\n\n"
+            if key == 'detailed_scores':
+                # 새로운 detailed_scores 섹션 처리 - 최우선
+                output_instruction += value.get('format', 
+                    "**반드시 아래 형식 그대로 출력하세요:**\n\n세부항목별 평가점수:\n\n기술적전문성_머신러닝딥러닝알고리즘이해도: [0-10점 중 정확한 숫자]\n기술적전문성_머신러닝딥러닝알고리즘설명: [해당 항목에 대한 구체적 평가 설명]\n기술적전문성_데이터처리분석기술: [0-10점 중 정확한 숫자]\n기술적전문성_데이터처리분석기술설명: [해당 항목에 대한 구체적 평가 설명]\n기술적전문성_프레임워크툴활용도: [0-10점 중 정확한 숫자]\n기술적전문성_프레임워크툴활용도설명: [해당 항목에 대한 구체적 평가 설명]\n기술적전문성_최신기술트렌드이해: [0-10점 중 정확한 숫자]\n기술적전문성_최신기술트렌드이해설명: [해당 항목에 대한 구체적 평가 설명]\n\n실무경험_프로젝트규모복잡도: [0-10점 중 정확한 숫자]\n실무경험_프로젝트규모복잡도설명: [해당 항목에 대한 구체적 평가 설명]\n실무경험_데이터처리분석경험: [0-10점 중 정확한 숫자]\n실무경험_데이터처리분석경험설명: [해당 항목에 대한 구체적 평가 설명]\n실무경험_모델배포서비스화경험: [0-8점 중 정확한 숫자]\n실무경험_모델배포서비스화경험설명: [해당 항목에 대한 구체적 평가 설명]\n실무경험_비즈니스임팩트문제해결: [0-7점 중 정확한 숫자]\n실무경험_비즈니스임팩트문제해결설명: [해당 항목에 대한 구체적 평가 설명]\n\n적용능력_비즈니스문제해결능력: [0-10점 중 정확한 숫자]\n적용능력_비즈니스문제해결능력설명: [해당 항목에 대한 구체적 평가 설명]\n적용능력_기술학습적응능력: [0-8점 중 정확한 숫자]\n적용능력_기술학습적응능력설명: [해당 항목에 대한 구체적 평가 설명]\n적용능력_협업커뮤니케이션: [0-7점 중 정확한 숫자]\n적용능력_협업커뮤니케이션설명: [해당 항목에 대한 구체적 평가 설명]\n") + "\n\n"
+            elif key == 'total_score':
+                output_instruction += f"{value.get('format', '평가총점 : [위 세부 항목 점수를 모두 더한 합계] (예: 세부점수 합이 48점이면 총점도 48점)')}\n\n"
+            elif key == 'technical_expertise_details':
+                # 구형 호환용 - 하위 호환성 유지
+                output_instruction += value.get('format', 
+                    "기술적 전문성 세부평가:\n머신러닝딥러닝알고리즘이해도: [0-10점]\n머신러닝딥러닝알고리즘설명: [해당 항목에 대한 구체적 평가 설명]\n데이터처리분석기술: [0-10점]\n데이터처리분석기술설명: [해당 항목에 대한 구체적 평가 설명]\n프레임워크툴활용도: [0-10점]\n프레임워크툴활용도설명: [해당 항목에 대한 구체적 평가 설명]\n최신기술트렌드이해: [0-10점]\n최신기술트렌드이해설명: [해당 항목에 대한 구체적 평가 설명]\n") + "\n\n"
             elif key == 'strengths':
                 output_instruction += value.get('format', 
                     "강점:\n[각 줄은 한 줄씩 줄바꿈해줘]\n[답변 내용에서 드러난 구체적 경험이나 특징을 포함한 키워드로 작성해줘]\n") + "\n\n"
@@ -334,20 +376,375 @@ class CategoryEvaluator:
                         if line:
                             weaknesses.append(line)
             
-            return {
-                'score': max(0, min(100, score)),
+            # 직무적합도 카테고리인 경우 전체 세부 항목 추출
+            detailed_scores = {}
+            final_score = score
+            if category == 'JOB_COMPATIBILITY':
+                detailed_scores = self._parse_all_detailed_scores(result_text)
+                # 세부 항목 점수 합계를 실제 총점으로 사용 (강제 덮어쓰기)
+                calculated_total = detailed_scores.get('calculated_total', 0)
+                if calculated_total >= 0:  # 0점 이상이면 모두 적용
+                    logger.info(f"🔧 직무적합도 총점 강제 수정: GPT 총점 {score} -> 세부 항목 합계 {calculated_total}")
+                    final_score = calculated_total  # 세부 항목 합계로 강제 덮어쓰기
+                else:
+                    logger.warning(f"세부 항목 파싱 실패, GPT 총점 {score} 유지")
+            
+            result = {
+                'score': max(0, min(100, final_score)),
                 'strength_keyword': ', '.join(strengths) if strengths else '',
                 'weakness_keyword': ', '.join(weaknesses) if weaknesses else '',
                 'detailed_feedback': {
                     'strengths': strengths,
                     'weaknesses': weaknesses,
-                    'total_score': score
+                    'total_score': final_score
                 }
             }
+            
+            # 전체 세부 항목이 있는 경우 추가
+            if detailed_scores:
+                result['detailed_scores'] = detailed_scores
+            
+            return result
             
         except Exception as e:
             logger.error(f"{category} structured_feedback 파싱 중 오류: {e}")
             return self._get_default_category_result(category)
+    
+    def _parse_all_detailed_scores(self, result_text: str) -> Dict[str, Any]:
+        """
+        모든 11개 세부 항목 점수와 설명을 파싱
+        
+        Args:
+            result_text: GPT 응답 텍스트
+            
+        Returns:
+            Dict[str, Any]: 파싱된 전체 세부 항목들
+        """
+        try:
+            import re
+            
+            detailed_scores = {}
+            
+            logger.info(f"전체 세부 항목 파싱 시작...")
+            
+            # 세부항목별 평가점수 섹션 찾기 (정확한 형식 매칭)
+            score_section_patterns = [
+                r'세부항목별 평가점수:\s*((?:\n.*?)*?)(?=강점:|약점:|평가총점|$)',
+                r'세부항목별\s*평가점수\s*[:：]\s*((?:\n.*?)*?)(?=강점:|약점:|평가총점|$)',
+                r'세부.*?평가.*?점수.*?[:：]\s*((?:\n.*?)*?)(?=강점:|약점:|평가총점|$)',
+                r'\*\*반드시.*?형식.*?\*\*\s*((?:\n.*?)*?)(?=강점:|약점:|평가총점|$)'
+            ]
+            
+            score_section_text = None
+            for pattern in score_section_patterns:
+                score_section_match = re.search(pattern, result_text, re.DOTALL)
+                if score_section_match:
+                    score_section_text = score_section_match.group(1).strip()
+                    logger.info(f"세부항목별 평가점수 섹션 발견")
+                    break
+            
+            # 11개 세부 항목 정의 (공통 사용)
+            detailed_patterns = {
+                # 기술적 전문성 (40점)
+                'technical_ml_algorithm': {
+                    'score_keywords': ['기술적전문성_머신러닝딥러닝알고리즘이해도'],
+                    'desc_keywords': ['기술적전문성_머신러닝딥러닝알고리즘설명'],
+                    'name': '기술적전문성_머신러닝딥러닝알고리즘이해도',
+                    'max_score': 10
+                },
+                'technical_data_processing': {
+                    'score_keywords': ['기술적전문성_데이터처리분석기술'],
+                    'desc_keywords': ['기술적전문성_데이터처리분석기술설명'],
+                    'name': '기술적전문성_데이터처리분석기술',
+                    'max_score': 10
+                },
+                'technical_framework_tool': {
+                    'score_keywords': ['기술적전문성_프레임워크툴활용도'],
+                    'desc_keywords': ['기술적전문성_프레임워크툴활용도설명'],
+                    'name': '기술적전문성_프레임워크툴활용도',
+                    'max_score': 10
+                },
+                'technical_latest_tech': {
+                    'score_keywords': ['기술적전문성_최신기술트렌드이해'],
+                    'desc_keywords': ['기술적전문성_최신기술트렌드이해설명'],
+                    'name': '기술적전문성_최신기술트렌드이해',
+                    'max_score': 10
+                },
+                
+                # 실무경험 (35점)
+                'experience_project_scale': {
+                    'score_keywords': ['실무경험_프로젝트규모복잡도'],
+                    'desc_keywords': ['실무경험_프로젝트규모복잡도설명'],
+                    'name': '실무경험_프로젝트규모복잡도',
+                    'max_score': 10
+                },
+                'experience_data_processing': {
+                    'score_keywords': ['실무경험_데이터처리분석경험'],
+                    'desc_keywords': ['실무경험_데이터처리분석경험설명'],
+                    'name': '실무경험_데이터처리분석경험',
+                    'max_score': 10
+                },
+                'experience_model_deployment': {
+                    'score_keywords': ['실무경험_모델배포서비스화경험'],
+                    'desc_keywords': ['실무경험_모델배포서비스화경험설명'],
+                    'name': '실무경험_모델배포서비스화경험',
+                    'max_score': 8
+                },
+                'experience_business_impact': {
+                    'score_keywords': ['실무경험_비즈니스임팩트문제해결'],
+                    'desc_keywords': ['실무경험_비즈니스임팩트문제해결설명'],
+                    'name': '실무경험_비즈니스임팩트문제해결',
+                    'max_score': 7
+                },
+                
+                # 적용능력 (25점)
+                'application_business_problem': {
+                    'score_keywords': ['적용능력_비즈니스문제해결능력'],
+                    'desc_keywords': ['적용능력_비즈니스문제해결능력설명'],
+                    'name': '적용능력_비즈니스문제해결능력',
+                    'max_score': 10
+                },
+                'application_tech_learning': {
+                    'score_keywords': ['적용능력_기술학습적응능력'],
+                    'desc_keywords': ['적용능력_기술학습적응능력설명'],
+                    'name': '적용능력_기술학습적응능력',
+                    'max_score': 8
+                },
+                'application_collaboration': {
+                    'score_keywords': ['적용능력_협업커뮤니케이션'],
+                    'desc_keywords': ['적용능력_협업커뮤니케이션설명'],
+                    'name': '적용능력_협업커뮤니케이션',
+                    'max_score': 7
+                }
+            }
+            
+            if score_section_text:
+                # 각 항목별 점수와 설명 추출
+                for key, patterns_info in detailed_patterns.items():
+                    score = 0
+                    description = ""
+                    
+                    # 점수 추출 - 정확한 키:값 매칭 방식
+                    for score_keyword in patterns_info['score_keywords']:
+                        # 정확한 키:값 패턴 매칭
+                        score_pattern = rf'{re.escape(score_keyword)}\s*[:：]\s*(\d+)점?'
+                        score_match = re.search(score_pattern, score_section_text)
+                        if score_match:
+                            potential_score = int(score_match.group(1))
+                            max_score = patterns_info['max_score']
+                            if 0 <= potential_score <= max_score:
+                                score = potential_score
+                                logger.info(f"    {key} 점수 추출: {score}점")
+                                break
+                        
+                        # 백업: 라인별 검색
+                        lines = score_section_text.split('\n')
+                        for line in lines:
+                            if score_keyword in line and ':' in line:
+                                parts = line.split(':', 1)
+                                if len(parts) > 1:
+                                    numbers = re.findall(r'\d+', parts[1])
+                                    if numbers:
+                                        potential_score = int(numbers[0])
+                                        max_score = patterns_info['max_score']
+                                        if 0 <= potential_score <= max_score:
+                                            score = potential_score
+                                            logger.info(f"    {key} 점수 추출 (백업): {score}점")
+                                            break
+                        if score > 0:
+                            break
+                    
+                    # 설명 추출 - 정확한 키:값 매칭 방식  
+                    for desc_keyword in patterns_info['desc_keywords']:
+                        # 정확한 키:값 패턴 매칭
+                        desc_pattern = rf'{re.escape(desc_keyword)}\s*[:：]\s*(.+?)(?=\n|$)'
+                        desc_match = re.search(desc_pattern, score_section_text)
+                        if desc_match:
+                            description = desc_match.group(1).strip()
+                            if description:
+                                logger.info(f"    {key} 설명 추출됨")
+                                break
+                        
+                        # 백업: 라인별 검색
+                        lines = score_section_text.split('\n')
+                        for line in lines:
+                            if desc_keyword in line:
+                                parts = line.split(':', 1)
+                                if len(parts) > 1:
+                                    description = parts[1].strip()
+                                elif '：' in line:
+                                    parts = line.split('：', 1)
+                                    if len(parts) > 1:
+                                        description = parts[1].strip()
+                                
+                                if description:
+                                    logger.info(f"    {key} 설명 추출됨 (백업)")
+                                    break
+                        if description:
+                            break
+                    
+                    # 결과 저장
+                    if score > 0 or description:
+                        detailed_scores[key] = {
+                            'score': max(0, min(patterns_info['max_score'], score)),
+                            'description': description,
+                            'name': patterns_info['name'],
+                            'max_score': patterns_info['max_score']
+                        }
+                    else:
+                        # 점수와 설명을 찾지 못한 경우 기본값
+                        detailed_scores[key] = {
+                            'score': 0,
+                            'description': "평가 정보 없음",
+                            'name': patterns_info['name'],
+                            'max_score': patterns_info['max_score']
+                        }
+                
+                logger.info(f"전체 세부 항목 파싱 완료: {len(detailed_scores)}개 항목")
+                
+                # 총점 계산
+                total_calculated = sum(item['score'] for item in detailed_scores.values())
+                detailed_scores['calculated_total'] = total_calculated
+                logger.info(f"계산된 총점: {total_calculated}점")
+                
+            else:
+                logger.warning("세부항목별 평가점수 섹션을 찾을 수 없음 - 대안 파싱 시도")
+                # 대안: 전체 텍스트에서 세부 점수 추출 시도
+                detailed_scores = self._parse_from_weaknesses_fallback(result_text, detailed_patterns)
+            
+            return detailed_scores
+            
+        except Exception as e:
+            logger.error(f"전체 세부 항목 파싱 중 오류: {e}")
+            return {}
+    
+    def _parse_technical_expertise_details(self, result_text: str) -> Dict[str, Any]:
+        """
+        기술적 전문성 세부 항목들을 파싱 (하위 호환성 유지)
+        
+        Args:
+            result_text: GPT 응답 텍스트
+            
+        Returns:
+            Dict[str, Any]: 파싱된 기술적 전문성 세부 항목들
+        """
+        # 새로운 파싱 메소드 사용
+        all_scores = self._parse_all_detailed_scores(result_text)
+        
+        # 기술적 전문성 항목만 추출
+        technical_details = {}
+        technical_keys = [
+            'technical_ml_algorithm',
+            'technical_data_processing', 
+            'technical_framework_tool',
+            'technical_latest_tech'
+        ]
+        
+        for key in technical_keys:
+            if key in all_scores:
+                technical_details[key] = all_scores[key]
+        
+        return technical_details
+    
+    def _parse_from_weaknesses_fallback(self, result_text: str, detailed_patterns: dict) -> Dict[str, Any]:
+        """
+        전체 텍스트에서 세부 항목 점수를 추출하는 대안 파싱 메소드
+        
+        Args:
+            result_text: GPT 응답 텍스트
+            detailed_patterns: 세부 항목 패턴 정의
+            
+        Returns:
+            Dict[str, Any]: 파싱된 세부 항목들
+        """
+        try:
+            import re
+            
+            detailed_scores = {}
+            logger.info("전체 응답에서 세부 점수 추출 시도...")
+            
+            # GPT 실제 출력 형식에 맞춘 강력한 패턴들
+            # 예: "1. **머신러닝/딥러닝 알고리즘 이해도 (10점)**: 0점 - 관련 언급 없음"
+            score_patterns = [
+                # 머신러닝/딥러닝 알고리즘 이해도
+                (r'\d+\.\s*\*\*머신러닝.{0,30}딥러닝.{0,30}알고리즘.{0,30}이해도.*?\*\*.*?[:：]\s*(\d+)점', 'technical_ml_algorithm', 10),
+                # 데이터 처리/분석 기술  
+                (r'\d+\.\s*\*\*데이터.{0,30}처리.{0,30}분석.{0,30}기술.*?\*\*.*?[:：]\s*(\d+)점', 'technical_data_processing', 10),
+                # 프레임워크/툴 활용도
+                (r'\d+\.\s*\*\*프레임워크.{0,30}툴.{0,30}활용도.*?\*\*.*?[:：]\s*(\d+)점', 'technical_framework_tool', 10),
+                # 최신 기술 트렌드 이해
+                (r'\d+\.\s*\*\*최신.{0,30}기술.{0,30}트렌드.{0,30}이해.*?\*\*.*?[:：]\s*(\d+)점', 'technical_latest_tech', 10),
+                # 프로젝트 규모/복잡도
+                (r'\d+\.\s*\*\*프로젝트.{0,30}규모.{0,30}복잡도.*?\*\*.*?[:：]\s*(\d+)점', 'experience_project_scale', 10),
+                # 데이터 처리/분석 경험
+                (r'\d+\.\s*\*\*데이터.{0,30}처리.{0,30}분석.{0,30}경험.*?\*\*.*?[:：]\s*(\d+)점', 'experience_data_processing', 10),
+                # 모델 배포/서비스화 경험  
+                (r'\d+\.\s*\*\*모델.{0,30}배포.{0,30}서비스화.{0,30}경험.*?\*\*.*?[:：]\s*(\d+)점', 'experience_model_deployment', 8),
+                # 비즈니스 임팩트/문제 해결
+                (r'\d+\.\s*\*\*비즈니스.{0,30}임팩트.{0,30}문제.{0,30}해결.*?\*\*.*?[:：]\s*(\d+)점', 'experience_business_impact', 7),
+                # 비즈니스 문제 해결 능력
+                (r'\d+\.\s*\*\*비즈니스.{0,30}문제.{0,30}해결.{0,30}능력.*?\*\*.*?[:：]\s*(\d+)점', 'application_business_problem', 10),
+                # 기술 학습/적응 능력
+                (r'\d+\.\s*\*\*기술.{0,30}학습.{0,30}적응.{0,30}능력.*?\*\*.*?[:：]\s*(\d+)점', 'application_tech_learning', 8),
+                # 협업/커뮤니케이션
+                (r'\d+\.\s*\*\*협업.{0,30}커뮤니케이션.*?\*\*.*?[:：]\s*(\d+)점', 'application_collaboration', 7)
+            ]
+            
+            # 전체 텍스트에서 패턴 매칭
+            for pattern, key, max_score in score_patterns:
+                matches = re.finditer(pattern, result_text, re.IGNORECASE | re.DOTALL)
+                for match in matches:
+                    score = int(match.group(1))
+                    if 0 <= score <= max_score and key not in detailed_scores:
+                        detailed_scores[key] = {
+                            'score': score,
+                            'description': f"GPT 응답에서 추출된 점수 ({match.group(0).strip()[:50]}...)",
+                            'name': detailed_patterns.get(key, {}).get('name', key),
+                            'max_score': max_score
+                        }
+                        logger.info(f"  대안 파싱: {key} -> {score}점")
+                        break
+            
+            # 기본 패턴으로 충분히 잘 작동하므로 백업 패턴 비활성화
+            # 누락된 항목이 있으면 0점으로 처리
+            if len(detailed_scores) < 11:
+                logger.info(f"누락된 항목들을 0점으로 처리... (현재: {len(detailed_scores)}/11개)")
+                
+                all_keys = [
+                    'technical_ml_algorithm', 'technical_data_processing', 'technical_framework_tool', 'technical_latest_tech',
+                    'experience_project_scale', 'experience_data_processing', 'experience_model_deployment', 'experience_business_impact',
+                    'application_business_problem', 'application_tech_learning', 'application_collaboration'
+                ]
+                
+                for key in all_keys:
+                    if key not in detailed_scores:
+                        max_score = detailed_patterns.get(key, {}).get('max_score', 10)
+                        detailed_scores[key] = {
+                            'score': 0,
+                            'description': f"파싱되지 않은 항목",
+                            'name': detailed_patterns.get(key, {}).get('name', key),
+                            'max_score': max_score
+                        }
+                        logger.info(f"  누락 항목: {key} -> 0점")
+            
+            if detailed_scores:
+                # 총점 계산
+                total_calculated = sum(item['score'] for item in detailed_scores.values())
+                detailed_scores['calculated_total'] = total_calculated
+                logger.info(f"대안 파싱 완료: {len(detailed_scores)}개 항목, 총점 {total_calculated}점")
+                
+                # 각 항목별 점수 로깅
+                for key, item in detailed_scores.items():
+                    if key != 'calculated_total':
+                        logger.info(f"    {key}: {item['score']}/{item['max_score']}점")
+            else:
+                logger.warning("대안 파싱에서도 세부 점수를 찾을 수 없음")
+            
+            return detailed_scores
+            
+        except Exception as e:
+            logger.error(f"대안 파싱 중 오류: {e}")
+            return {}
     
     def _build_json_format_from_structure(self, structure: dict, indent: int = 0) -> str:
         """
@@ -434,6 +831,13 @@ class CategoryEvaluator:
                     self.category_output_formats[category] = output_format  # 출력 형태 저장
                     logger.info(f"{category} 카테고리 프롬프트 로드 완료: {filename}")
                     
+                    # 직무적합도의 경우 출력 형식 상세 로깅
+                    if category == 'JOB_COMPATIBILITY':
+                        structure_keys = list(output_format.get('structure', {}).keys()) if output_format else []
+                        logger.info(f"직무적합도 출력 형식 구조: {structure_keys}")
+                        has_technical = 'technical_expertise_details' in structure_keys
+                        logger.info(f"기술적 전문성 세부항목 포함: {has_technical}")
+                    
                 except FileNotFoundError:
                     logger.warning(f"프롬프트 파일을 찾을 수 없습니다: {yaml_path}")
                     self.category_prompts[category] = self._get_default_prompt(category)
@@ -464,8 +868,6 @@ class CategoryEvaluator:
     def _get_category_evaluation_criteria(self, category: str) -> str:
         """카테고리별 평가 기준 (YAML에서 로드된 프롬프트 반환)"""
         return self.category_prompts.get(category, "")
-    
-
     
     def _get_default_category_result(self, category: str = '') -> Dict[str, Any]:
         """GPT 평가 실패 시 최소한의 결과 반환 (정적 키워드 없음)"""
