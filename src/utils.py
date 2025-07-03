@@ -1,0 +1,87 @@
+# ----------------------------------------------------------------------------------------------------
+# 작성목적 : 유틸리티 함수 모음. 공통으로 사용되는 헬퍼 함수들을 정의합니다.
+# 작성일 : 2025-06-25
+
+# 변경사항 내역 (날짜 | 변경목적 | 변경내용 | 작성자 순으로 기입)
+# 2025-06-25 | 최초 구현 | S3 경로 파싱 등 유틸리티 함수 분리 | 이주형
+# ----------------------------------------------------------------------------------------------------
+
+import re
+import logging
+from typing import Tuple, Optional
+
+logger = logging.getLogger(__name__)
+
+def extract_user_info_from_s3_key(s3_object_key: str) -> Tuple[Optional[str], Optional[int]]:
+    """
+    S3 Object Key에서 user_id와 question_num 추출
+    
+    예상 경로 패턴:
+    - team12/interview_audio/{userId}/{question_num}/{파일명}
+    - bucket-name/path/{userId}/{question_num}/file.webm
+    
+    Args:
+        s3_object_key: S3 Object Key 또는 URL
+        
+    Returns:
+        tuple: (user_id, question_num) 또는 (None, None)
+    """
+    try:
+        # S3 URL 프리픽스 제거
+        clean_key = s3_object_key.replace('s3://', '')
+        if '/' in clean_key:
+            # 첫 번째 '/' 이후 부분만 사용 (버킷명 제거)
+            parts = clean_key.split('/', 1)
+            if len(parts) > 1:
+                clean_key = parts[1]
+        
+        path_parts = clean_key.split('/')
+        
+        # 패턴 1: team12/interview_audio/{userId}/{question_num}/{파일명}
+        if len(path_parts) >= 4 and 'interview_audio' in path_parts:
+            interview_idx = path_parts.index('interview_audio')
+            if interview_idx + 2 < len(path_parts):
+                user_id = path_parts[interview_idx + 1]
+                question_part = path_parts[interview_idx + 2]
+                
+                # 숫자 추출
+                question_match = re.search(r'([0-9]+)', question_part)
+                if question_match:
+                    return user_id, int(question_match.group(1))
+        
+        # 패턴 2: 파일명에서 추출
+        filename = path_parts[-1] if path_parts else s3_object_key
+        filename_no_ext = filename.rsplit('.', 1)[0]
+        
+        # user{id}_question{num} 패턴
+        pattern = r'user([a-zA-Z0-9_-]+)_(?:question|q)([0-9]+)'
+        match = re.search(pattern, filename_no_ext, re.IGNORECASE)
+        if match:
+            return match.group(1), int(match.group(2))
+        
+        # 단순 {userid}_{questionnum} 패턴  
+        simple_pattern = r'([a-zA-Z0-9_-]+)_([0-9]+)'
+        simple_match = re.search(simple_pattern, filename_no_ext)
+        if simple_match:
+            return simple_match.group(1), int(simple_match.group(2))
+            
+        logger.debug(f"S3 경로에서 사용자 정보 추출 실패: {s3_object_key}")
+        return None, None
+        
+    except Exception as e:
+        logger.warning(f"S3 경로 파싱 오류: {s3_object_key} - {str(e)}")
+        return None, None
+
+def format_s3_url(s3_object_key: str) -> str:
+    """
+    S3 Object Key를 URL 형태로 변환
+    
+    Args:
+        s3_object_key: S3 Object Key
+        
+    Returns:
+        str: s3:// 형태의 URL
+    """
+    if not s3_object_key.startswith('s3://'):
+        return f"s3://{s3_object_key}"
+    return s3_object_key
