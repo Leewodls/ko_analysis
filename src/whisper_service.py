@@ -21,18 +21,13 @@ load_dotenv()
 
 class WhisperService:
     """Whisper STT 변환 서비스"""
-    
-    def __init__(self, model_name: str = "small"):
-        """
-        Args:
-            model_name: Whisper 모델 크기 (tiny, base, small, medium, large)
-        """
-        self.model_name = model_name
-        self.model = None
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        
-    async def load_model(self):
-        """Whisper 모델 로드"""
+    def __init__(self):
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise ValueError("OPENAI_API_KEY가 설정되지 않았습니다.")
+        self.client = openai.OpenAI(api_key=self.api_key)
+
+    def transcribe(self, audio_path: str, prompt: str = ""):
         try:
             logger.info(f"Whisper API STT 변환 시작: {audio_path}")
             with open(audio_path, "rb") as audio_file:

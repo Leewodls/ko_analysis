@@ -3,6 +3,8 @@
 __pycache__
 pipeline.log
 wav2vec2_checkpoints
+test.ipynb
+google_stt_credential.json
 
 models/
 
@@ -199,5 +201,3 @@ pyrightconfig.json
 # Ignore all local history of files
 .history
 .ionide
-
-# End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode
