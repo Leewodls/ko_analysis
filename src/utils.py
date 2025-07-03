@@ -4,8 +4,10 @@
 
 # 변경사항 내역 (날짜 | 변경목적 | 변경내용 | 작성자 순으로 기입)
 # 2025-06-25 | 최초 구현 | S3 경로 파싱 등 유틸리티 함수 분리 | 이주형
+# 2025-07-03 | 버그 수정 | S3 버킷명을 환경변수로 관리하여 404 오류 해결 | 구동빈
 # ----------------------------------------------------------------------------------------------------
 
+import os
 import re
 import logging
 from typing import Tuple, Optional
@@ -75,13 +77,24 @@ def extract_user_info_from_s3_key(s3_object_key: str) -> Tuple[Optional[str], Op
 def format_s3_url(s3_object_key: str) -> str:
     """
     S3 Object Key를 URL 형태로 변환
+    버킷명은 .env의 S3_BUCKET_NAME 환경변수에서 가져옴
     
     Args:
-        s3_object_key: S3 Object Key
+        s3_object_key: S3 Object Key (버킷명 제외한 경로)
         
     Returns:
-        str: s3:// 형태의 URL
+        str: s3://{bucket_name}/{object_key} 형태의 URL
     """
-    if not s3_object_key.startswith('s3://'):
-        return f"s3://{s3_object_key}"
-    return s3_object_key
+    # 환경변수에서 버킷명 가져오기
+    bucket_name = os.getenv('S3_BUCKET_NAME', 'skala25a')  # 기본값은 skala25a
+    
+    # 이미 완전한 S3 URL인 경우 그대로 반환
+    if s3_object_key.startswith('s3://'):
+        return s3_object_key
+    
+    # 버킷명이 이미 포함된 경우 제거
+    if s3_object_key.startswith(f'{bucket_name}/'):
+        s3_object_key = s3_object_key[len(bucket_name)+1:]  # '{bucket_name}/' 제거
+    
+    # 환경변수 버킷명과 함께 S3 URL 생성
+    return f"s3://{bucket_name}/{s3_object_key}"

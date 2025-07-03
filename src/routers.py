@@ -4,6 +4,7 @@
 
 # 변경사항 내역 (날짜 | 변경목적 | 변경내용 | 작성자 순으로 기입)
 # 2025-06-25 | 최초 구현 | app.py에서 분리하여 독립적인 라우터 모듈 생성 | 이주형
+# 2025-12-19 | 디버깅 기능 | S3 디버깅용 엔드포인트 추가 | 구동빈
 # ----------------------------------------------------------------------------------------------------
 
 """
@@ -46,6 +47,67 @@ async def root():
 async def health_check():
     """헬스 체크"""
     return HealthResponse(status="healthy")
+
+@router.post("/debug/s3-check")
+async def debug_s3_file_check(request: CommunicationAnalysisRequest):
+    """
+    S3 파일 존재 여부 확인 (디버깅용)
+    """
+    try:
+        if not analysis_service:
+            raise HTTPException(status_code=500, detail="서비스가 초기화되지 않았습니다.")
+        
+        # S3 Object Key를 URL로 변환
+        s3_audio_url = format_s3_url(request.s3ObjectKey)
+        logger.info(f"S3 URL 변환: {request.s3ObjectKey} -> {s3_audio_url}")
+        
+        # 파일 존재 여부 확인
+        file_check = await analysis_service.s3_service.check_file_exists(s3_audio_url)
+        
+        # 상위 디렉토리 내용도 확인
+        from urllib.parse import urlparse
+        parsed = urlparse(s3_audio_url)
+        parent_path = '/'.join(parsed.path.split('/')[:-1])
+        parent_url = f"s3://{parsed.netloc}{parent_path}"
+        
+        dir_contents = await analysis_service.s3_service.list_bucket_contents(parent_url, max_keys=20)
+        
+        return {
+            "s3_object_key": request.s3ObjectKey,
+            "s3_url": s3_audio_url,
+            "file_check": file_check,
+            "parent_directory": parent_url,
+            "directory_contents": dir_contents
+        }
+        
+    except Exception as e:
+        logger.error(f"S3 디버깅 중 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"디버깅 중 오류: {str(e)}")
+
+@router.post("/debug/s3-list")
+async def debug_s3_list_directory(s3_path: str):
+    """
+    S3 디렉토리 내용 리스팅 (디버깅용)
+    """
+    try:
+        if not analysis_service:
+            raise HTTPException(status_code=500, detail="서비스가 초기화되지 않았습니다.")
+        
+        # S3 경로를 URL로 변환
+        s3_url = format_s3_url(s3_path)
+        
+        # 디렉토리 내용 확인
+        dir_contents = await analysis_service.s3_service.list_bucket_contents(s3_url, max_keys=50)
+        
+        return {
+            "s3_path": s3_path,
+            "s3_url": s3_url,
+            "directory_contents": dir_contents
+        }
+        
+    except Exception as e:
+        logger.error(f"S3 디렉토리 리스팅 중 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"디렉토리 리스팅 중 오류: {str(e)}")
 
 @router.post("/analysis", response_model=AnalysisResponse)
 async def analyze_voice(request: AnalysisRequest):
@@ -105,7 +167,7 @@ async def analyze_voice_only(request: AnalysisRequest):
         logger.error(f"음성 분석 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"음성 분석 중 오류가 발생했습니다: {str(e)}")
 
-@router.post("/communication", response_model=CommunicationAnalysisResponse)
+@router.post("/analysis/communication", response_model=CommunicationAnalysisResponse)
 async def communication_analysis(request: CommunicationAnalysisRequest):
     """
     AI-Interview 서버에서 의사소통 분석 요청을 받는 엔드포인트
