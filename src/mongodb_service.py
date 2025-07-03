@@ -243,6 +243,200 @@ class MongoDBService:
             logger.error(f"분석 통계 조회 중 오류: {e}")
             return {"total_analyses": 0, "average_scores": {}}
 
+    async def save_job_compatibility_detailed_scores(self, 
+                                                     user_id: str, 
+                                                     question_num: int, 
+                                                     detailed_scores: Dict[str, Any],
+                                                     stt_text: str = "") -> bool:
+        """
+        직무적합도 전체 11개 세부 항목을 별도 컬렉션에 저장
+        
+        Args:
+            user_id: 사용자 ID
+            question_num: 질문 번호
+            detailed_scores: 11개 세부 항목 점수 딕셔너리
+            stt_text: STT 텍스트 (선택사항)
+            
+        Returns:
+            bool: 저장 성공 여부
+        """
+        try:
+            # 직무적합도 세부 점수 전용 컬렉션 설정
+            detailed_collection = self.db['job_compatibility_detailed_scores']
+            
+            # 세부 항목별 점수 분류
+            technical_expertise = {}
+            practical_experience = {}
+            application_ability = {}
+            calculated_total = detailed_scores.get('calculated_total', 0)
+            
+            # 기술적 전문성 (40점)
+            for key in ['technical_ml_algorithm', 'technical_data_processing', 
+                       'technical_framework_tool', 'technical_latest_tech']:
+                if key in detailed_scores:
+                    technical_expertise[key] = detailed_scores[key]
+            
+            # 실무경험 (35점)
+            for key in ['experience_project_scale', 'experience_data_processing',
+                       'experience_model_deployment', 'experience_business_impact']:
+                if key in detailed_scores:
+                    practical_experience[key] = detailed_scores[key]
+            
+            # 적용능력 (25점)
+            for key in ['application_business_problem', 'application_tech_learning',
+                       'application_collaboration']:
+                if key in detailed_scores:
+                    application_ability[key] = detailed_scores[key]
+            
+            # 문서 구성
+            document = {
+                "user_id": user_id,
+                "question_num": question_num,
+                "stt_text": stt_text,
+                "calculated_total_score": calculated_total,
+                "detailed_scores": {
+                    "technical_expertise": technical_expertise,  # 기술적 전문성 (40점)
+                    "practical_experience": practical_experience,  # 실무경험 (35점)
+                    "application_ability": application_ability  # 적용능력 (25점)
+                },
+                "score_summary": {
+                    "technical_total": sum(item.get('score', 0) for item in technical_expertise.values()),
+                    "experience_total": sum(item.get('score', 0) for item in practical_experience.values()),
+                    "application_total": sum(item.get('score', 0) for item in application_ability.values())
+                },
+                "analysis_timestamp": datetime.utcnow(),
+                "created_at": datetime.utcnow()
+            }
+            
+            # upsert를 사용하여 기존 데이터 업데이트 또는 새로 생성
+            result = await detailed_collection.replace_one(
+                {"user_id": user_id, "question_num": question_num},
+                document,
+                upsert=True
+            )
+            
+            if result.acknowledged:
+                logger.info(f"직무적합도 세부 점수 저장 성공: user_id={user_id}, question_num={question_num}, 총점={calculated_total}")
+                return True
+            else:
+                logger.error("직무적합도 세부 점수 저장 실패: 응답이 승인되지 않음")
+                return False
+                
+        except Exception as e:
+            logger.error(f"직무적합도 세부 점수 저장 중 오류: {e}")
+            return False
+    
+    async def save_technical_expertise_details(self, 
+                                               user_id: str, 
+                                               question_num: int, 
+                                               technical_details: Dict[str, Any],
+                                               stt_text: str = "") -> bool:
+        """
+        기술적 전문성 세부 항목을 별도 컬렉션에 저장 (하위 호환성 유지)
+        
+        Args:
+            user_id: 사용자 ID
+            question_num: 질문 번호
+            technical_details: 기술적 전문성 세부 항목 딕셔너리
+            stt_text: STT 텍스트 (선택사항)
+            
+        Returns:
+            bool: 저장 성공 여부
+        """
+        try:
+            # 기술적 전문성 전용 컬렉션 설정
+            tech_collection = self.db['technical_expertise_details']
+            
+            # 문서 구성
+            document = {
+                "user_id": user_id,
+                "question_num": question_num,
+                "stt_text": stt_text,
+                "technical_expertise": technical_details,
+                "analysis_timestamp": datetime.utcnow(),
+                "created_at": datetime.utcnow()
+            }
+            
+            # upsert를 사용하여 기존 데이터 업데이트 또는 새로 생성
+            result = await tech_collection.replace_one(
+                {"user_id": user_id, "question_num": question_num},
+                document,
+                upsert=True
+            )
+            
+            if result.acknowledged:
+                logger.info(f"기술적 전문성 세부 항목 저장 성공: user_id={user_id}, question_num={question_num}")
+                return True
+            else:
+                logger.error("기술적 전문성 세부 항목 저장 실패: 응답이 승인되지 않음")
+                return False
+                
+        except Exception as e:
+            logger.error(f"기술적 전문성 세부 항목 저장 중 오류: {e}")
+            return False
+    
+    async def get_job_compatibility_detailed_scores(self, user_id: str, question_num: int) -> Optional[Dict[str, Any]]:
+        """
+        직무적합도 전체 11개 세부 항목 점수 조회
+        
+        Args:
+            user_id: 사용자 ID
+            question_num: 질문 번호
+            
+        Returns:
+            Optional[Dict]: 직무적합도 세부 점수 또는 None
+        """
+        try:
+            detailed_collection = self.db['job_compatibility_detailed_scores']
+            
+            result = await detailed_collection.find_one(
+                {"user_id": user_id, "question_num": question_num}
+            )
+            
+            if result:
+                # ObjectId 제거
+                result.pop('_id', None)
+                logger.info(f"직무적합도 세부 점수 조회 성공: user_id={user_id}, question_num={question_num}")
+                return result
+            else:
+                logger.info(f"직무적합도 세부 점수 없음: user_id={user_id}, question_num={question_num}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"직무적합도 세부 점수 조회 중 오류: {e}")
+            return None
+    
+    async def get_technical_expertise_details(self, user_id: str, question_num: int) -> Optional[Dict[str, Any]]:
+        """
+        기술적 전문성 세부 항목 조회 (하위 호환성 유지)
+        
+        Args:
+            user_id: 사용자 ID
+            question_num: 질문 번호
+            
+        Returns:
+            Optional[Dict]: 기술적 전문성 세부 항목 또는 None
+        """
+        try:
+            tech_collection = self.db['technical_expertise_details']
+            
+            result = await tech_collection.find_one(
+                {"user_id": user_id, "question_num": question_num}
+            )
+            
+            if result:
+                # ObjectId 제거
+                result.pop('_id', None)
+                logger.info(f"기술적 전문성 세부 항목 조회 성공: user_id={user_id}, question_num={question_num}")
+                return result
+            else:
+                logger.info(f"기술적 전문성 세부 항목 없음: user_id={user_id}, question_num={question_num}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"기술적 전문성 세부 항목 조회 중 오류: {e}")
+            return None
+
     async def save_analysis_scores(self, score_data: Dict[str, Any]) -> bool:
         """
         종합 분석 점수를 MongoDB에 저장 (새로운 워크플로우용)

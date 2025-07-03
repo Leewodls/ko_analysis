@@ -209,7 +209,7 @@ class GPTEvaluator:
             'text_score': 30,
             'strengths': ['기본적인 언어 표현'],
             'weaknesses': ['평가 데이터 부족'],
-            'raw_feedback': '평가총점 : 30\n강점:\n기본적인 언어 표현\n약점:\n평가 데이터 부족'
+            'raw_feedback': '평가총점 : 0\n강점:\n기본적인 언어 표현\n약점:\n평가 데이터 부족'
         }
     
     def _load_prompt_from_yaml(self, filename: str) -> Dict[str, Any]:
@@ -410,4 +410,233 @@ class GPTEvaluator:
             
         except Exception as e:
             logger.error(f"평가요약 생성 중 오류: {e}")
-            return "평가요약 생성 중 오류가 발생했습니다." 
+            return "평가요약 생성 중 오류가 발생했습니다."
+
+    async def evaluate_job_compatibility(self, text: str, question_context: str = "") -> Dict[str, Any]:
+        """직무적합도 평가 (job_compatibility.yaml 사용)"""
+        try:
+            logger.info("직무적합도 평가 시작")
+            
+            # YAML 프롬프트 로드
+            prompt_config = self._load_prompt_from_yaml("job_compatibility.yaml")
+            if not prompt_config:
+                return self._get_default_evaluation_scores("직무적합도")
+            
+            # 프롬프트 구성
+            prompt = f"""
+{prompt_config.get('evaluation_criteria', '')}
+
+{prompt_config.get('additional_instructions', '')}
+
+**질문 맥락:** {question_context}
+
+**지원자 답변:**
+{text}
+
+위 답변을 평가 기준에 따라 분석하고, 지정된 출력 형식으로 결과를 제시해주세요.
+"""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": f"당신은 {prompt_config.get('description', '직무적합도 평가 전문가')}입니다."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            logger.info("직무적합도 평가 완료")
+            
+            return self._parse_evaluation_feedback(result_text, "직무적합도")
+            
+        except Exception as e:
+            logger.error(f"직무적합도 평가 중 오류: {e}")
+            return self._get_default_evaluation_scores("직무적합도")
+
+    async def evaluate_org_fit(self, text: str, question_context: str = "") -> Dict[str, Any]:
+        """조직적합도 평가 (org_fit.yaml 사용)"""
+        try:
+            logger.info("조직적합도 평가 시작")
+            
+            # YAML 프롬프트 로드
+            prompt_config = self._load_prompt_from_yaml("org_fit.yaml")
+            if not prompt_config:
+                return self._get_default_evaluation_scores("조직적합도")
+            
+            # 프롬프트 구성
+            prompt = f"""
+{prompt_config.get('evaluation_criteria', '')}
+
+{prompt_config.get('additional_instructions', '')}
+
+**질문 맥락:** {question_context}
+
+**지원자 답변:**
+{text}
+
+위 답변을 평가 기준에 따라 분석하고, 지정된 출력 형식으로 결과를 제시해주세요.
+"""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": f"당신은 {prompt_config.get('description', '조직적합도 평가 전문가')}입니다."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            logger.info("조직적합도 평가 완료")
+            
+            return self._parse_evaluation_feedback(result_text, "조직적합도")
+            
+        except Exception as e:
+            logger.error(f"조직적합도 평가 중 오류: {e}")
+            return self._get_default_evaluation_scores("조직적합도")
+
+    async def evaluate_problem_solving(self, text: str, question_context: str = "") -> Dict[str, Any]:
+        """문제해결력 평가 (problem_solving.yaml 사용)"""
+        try:
+            logger.info("문제해결력 평가 시작")
+            
+            # YAML 프롬프트 로드
+            prompt_config = self._load_prompt_from_yaml("problem_solving.yaml")
+            if not prompt_config:
+                return self._get_default_evaluation_scores("문제해결력")
+            
+            # 프롬프트 구성
+            prompt = f"""
+{prompt_config.get('evaluation_criteria', '')}
+
+{prompt_config.get('additional_instructions', '')}
+
+**질문 맥락:** {question_context}
+
+**지원자 답변:**
+{text}
+
+위 답변을 평가 기준에 따라 분석하고, 지정된 출력 형식으로 결과를 제시해주세요.
+"""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": f"당신은 {prompt_config.get('description', '문제해결력 평가 전문가')}입니다."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            logger.info("문제해결력 평가 완료")
+            
+            return self._parse_evaluation_feedback(result_text, "문제해결력")
+            
+        except Exception as e:
+            logger.error(f"문제해결력 평가 중 오류: {e}")
+            return self._get_default_evaluation_scores("문제해결력")
+
+    async def evaluate_tech_stack(self, text: str, question_context: str = "") -> Dict[str, Any]:
+        """보유역량 평가 (tech_stack.yaml 사용)"""
+        try:
+            logger.info("보유역량 평가 시작")
+            
+            # YAML 프롬프트 로드
+            prompt_config = self._load_prompt_from_yaml("tech_stack.yaml")
+            if not prompt_config:
+                return self._get_default_evaluation_scores("보유역량")
+            
+            # 프롬프트 구성
+            prompt = f"""
+{prompt_config.get('evaluation_criteria', '')}
+
+{prompt_config.get('additional_instructions', '')}
+
+**질문 맥락:** {question_context}
+
+**지원자 답변:**
+{text}
+
+위 답변을 평가 기준에 따라 분석하고, 지정된 출력 형식으로 결과를 제시해주세요.
+"""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": f"당신은 {prompt_config.get('description', '보유역량 평가 전문가')}입니다."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            logger.info("보유역량 평가 완료")
+            
+            return self._parse_evaluation_feedback(result_text, "보유역량")
+            
+        except Exception as e:
+            logger.error(f"보유역량 평가 중 오류: {e}")
+            return self._get_default_evaluation_scores("보유역량")
+
+    def _parse_evaluation_feedback(self, feedback_text: str, category: str) -> Dict[str, Any]:
+        """일반적인 평가 피드백 텍스트를 파싱하여 점수와 강점/약점 추출"""
+        try:
+            lines = feedback_text.strip().split('\n')
+            score = 0
+            strengths = []
+            weaknesses = []
+            current_section = None
+            
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # 점수 추출
+                if line.startswith('평가총점'):
+                    try:
+                        score = int(line.split(':')[-1].strip())
+                    except:
+                        score = 0  # 기본값을 0으로 변경
+                
+                # 섹션 구분
+                elif line.startswith('강점'):
+                    current_section = 'strengths'
+                elif line.startswith('약점'):
+                    current_section = 'weaknesses'
+                elif current_section == 'strengths' and line:
+                    strengths.append(line)
+                elif current_section == 'weaknesses' and line:
+                    weaknesses.append(line)
+            
+            return {
+                'score': max(0, min(100, score)),  # 100점 만점으로 제한
+                'category': category,
+                'strengths': strengths,
+                'weaknesses': weaknesses,
+                'strength_keyword': ', '.join(strengths) if strengths else '',  # MariaDB용 문자열 형태 추가
+                'weakness_keyword': ', '.join(weaknesses) if weaknesses else '',  # MariaDB용 문자열 형태 추가
+                'raw_feedback': feedback_text
+            }
+            
+        except Exception as e:
+            logger.error(f"{category} 피드백 파싱 중 오류: {e}")
+            return self._get_default_evaluation_scores(category)
+
+    def _get_default_evaluation_scores(self, category: str) -> Dict[str, Any]:
+        """오류 시 기본 평가 점수 반환"""
+        return {
+            'score': 0,  # 기본값을 0으로 변경
+            'category': category,
+            'strengths': [f'기본적인 {category} 능력'],
+            'weaknesses': ['평가 데이터 부족'],
+            'strength_keyword': f'기본적인 {category} 능력',  # MariaDB용 문자열 형태 추가
+            'weakness_keyword': '평가 데이터 부족',  # MariaDB용 문자열 형태 추가
+            'raw_feedback': f'평가총점 : 0\n강점:\n기본적인 {category} 능력\n약점:\n평가 데이터 부족'
+        } 

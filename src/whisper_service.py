@@ -4,6 +4,7 @@
 
 # 변경사항 내역 (날짜 | 변경목적 | 변경내용 | 작성자 순으로 기입)
 # 알수없음 | 최초 구현 | Whisper STT 변환 서비스 | 이재인
+# 2025-07-03 | 모델 변경 | Whisper 모델 변경 | 구동빈
 # ----------------------------------------------------------------------------------------------------
 
 import os
@@ -11,8 +12,12 @@ import logging
 import whisper
 from typing import Optional, Dict, Any
 import torch
+import openai
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 class WhisperService:
     """Whisper STT 변환 서비스"""
@@ -29,48 +34,22 @@ class WhisperService:
     async def load_model(self):
         """Whisper 모델 로드"""
         try:
-            logger.info(f"Whisper 모델 로딩 시작: {self.model_name} on {self.device}")
-            self.model = whisper.load_model(self.model_name, device=self.device)
-            logger.info("Whisper 모델 로딩 완료")
-            
-        except Exception as e:
-            logger.error(f"Whisper 모델 로딩 실패: {str(e)}")
-            raise
-    
-    async def transcribe(self, audio_path: str, language: str = "ko") -> str:
-        """
-        음성 파일을 텍스트로 변환
-        
-        Args:
-            audio_path: 음성 파일 경로
-            language: 언어 코드 (기본값: ko)
-            
-        Returns:
-            str: 변환된 텍스트
-        """
-        try:
-            if not self.model:
-                raise RuntimeError("Whisper 모델이 로드되지 않았습니다.")
-            
-            logger.info(f"STT 변환 시작: {audio_path}")
-            
-            # Whisper로 변환
-            result = self.model.transcribe(
-                audio_path,
-                language=language,
-                task="transcribe",
-                verbose=False
-            )
-            
-            transcript = result["text"].strip()
-            logger.info(f"STT 변환 완료: {len(transcript)}자")
-            logger.info(f"전체 STT 텍스트: {transcript}")  # 전체 텍스트 로깅 추가
-            
+            logger.info(f"Whisper API STT 변환 시작: {audio_path}")
+            with open(audio_path, "rb") as audio_file:
+                response = self.client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    prompt=prompt,
+                    response_format="verbose_json",
+                    language="ko"
+                )
+            transcript = response.text
+            logger.info(f"Whisper API STT 변환 완료: {len(transcript)}자")
+            logger.debug(f"전체 STT 텍스트: {transcript}")
             return transcript
-            
         except Exception as e:
-            logger.error(f"STT 변환 실패: {str(e)}")
-            raise
+            logger.error(f"Whisper API STT 변환 실패: {e}")
+            return None
     
     async def transcribe_with_segments(self, audio_path: str, language: str = "ko") -> Dict[str, Any]:
         """
