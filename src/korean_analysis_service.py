@@ -217,6 +217,53 @@ class KoreanAnalysisService:
             else:
                 logger.error("  MariaDB 저장 실패")
             
+            # 9.1. 직무적합도 카테고리에서 전체 11개 세부 항목 추출 및 저장
+            logger.info("\n9.1단계: 직무적합도 세부 항목 점수 저장 중...")
+            try:
+                job_compatibility_result = category_results.get('JOB_COMPATIBILITY', {})
+                detailed_scores = job_compatibility_result.get('detailed_scores', {})
+                
+                if detailed_scores:
+                    # 새로운 메소드로 전체 세부 항목 저장
+                    detailed_success = await self.mongodb_service.save_job_compatibility_detailed_scores(
+                        user_id=user_id,
+                        question_num=question_num,
+                        detailed_scores=detailed_scores,
+                        stt_text=transcript
+                    )
+                    
+                    if detailed_success:
+                        total_calculated = detailed_scores.get('calculated_total', 0)
+                        logger.info(f"  직무적합도 세부 항목 저장 성공: {len([k for k in detailed_scores.keys() if k != 'calculated_total'])}개 항목, 총점 {total_calculated}점")
+                        
+                        # 카테고리별 점수 출력
+                        tech_count = sum(1 for k in detailed_scores.keys() if k.startswith('technical_'))
+                        exp_count = sum(1 for k in detailed_scores.keys() if k.startswith('experience_'))
+                        app_count = sum(1 for k in detailed_scores.keys() if k.startswith('application_'))
+                        logger.info(f"    - 기술적 전문성: {tech_count}개 항목")
+                        logger.info(f"    - 실무경험: {exp_count}개 항목")
+                        logger.info(f"    - 적용능력: {app_count}개 항목")
+                    else:
+                        logger.error("  직무적합도 세부 항목 저장 실패")
+                        
+                    # 하위 호환성을 위해 기술적 전문성만 따로도 저장
+                    technical_expertise_details = {k: v for k, v in detailed_scores.items() 
+                                                  if k.startswith('technical_')}
+                    if technical_expertise_details:
+                        tech_success = await self.mongodb_service.save_technical_expertise_details(
+                            user_id=user_id,
+                            question_num=question_num,
+                            technical_details=technical_expertise_details,
+                            stt_text=transcript
+                        )
+                        if tech_success:
+                            logger.info(f"  기술적 전문성 (하위 호환) 저장 성공: {len(technical_expertise_details)}개 항목")
+                else:
+                    logger.info("  직무적합도 세부 항목 없음 (평가 결과에서 추출되지 않음)")
+                    
+            except Exception as e:
+                logger.error(f"직무적합도 세부 항목 저장 중 오류: {e}")
+            
             # 10. MongoDB에 한국어 분석 결과 저장 (기존 방식)
             mongo_success = await self.mongodb_service.save_korean_analysis_result(
                 user_id=user_id,
