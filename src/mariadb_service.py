@@ -70,6 +70,9 @@ class MariaDBService:
                     # 외래키 체크 비활성화
                     await cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
                     
+                    # interview_answer 테이블 처리 (참조 테이블이므로 먼저 생성)
+                    await self._create_or_update_interview_answer_table(cursor)
+                    
                     # answer_score 테이블 처리
                     await self._create_or_update_answer_score_table(cursor)
                     
@@ -159,7 +162,7 @@ class MariaDBService:
         table_name = "answer_score"
         
         if not await self._table_exists(cursor, table_name):
-            # 테이블이 없으면 새로 생성
+            # 테이블이 없으면 새로 생성 (외래키 제약조건 포함)
             logger.info(f"{table_name} 테이블이 존재하지 않아 새로 생성합니다.")
             create_sql = """
             CREATE TABLE answer_score (
@@ -179,6 +182,9 @@ class MariaDBService:
             """
             await cursor.execute(create_sql)
             logger.info(f"{table_name} 테이블 생성 완료")
+            
+            # 외래키 제약조건 추가 (interview_answer 테이블이 존재하는 경우)
+            await self._add_foreign_key_if_possible(cursor, table_name)
         else:
             # 테이블이 있으면 필요한 컬럼만 추가
             logger.info(f"{table_name} 테이블이 존재합니다. 필요한 컬럼을 확인합니다.")
@@ -200,10 +206,109 @@ class MariaDBService:
             # 없는 컬럼들 추가
             for column_name, column_definition in required_columns.items():
                 if not await self._column_exists(cursor, table_name, column_name):
-                    logger.info(f"  {column_name} 컬럼 추가 중...")
-                    alter_sql = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
-                    await cursor.execute(alter_sql)
-                    logger.info(f"  {column_name} 컬럼 추가 완료")
+                    logger.info(f"  컬럼 {column_name} 추가 중...")
+                    try:
+                        await cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
+                        logger.info(f"  컬럼 {column_name} 추가 완료")
+                    except Exception as e:
+                        logger.warning(f"  컬럼 {column_name} 추가 실패: {e}")
+
+    async def _add_foreign_key_if_possible(self, cursor, table_name: str):
+        """interview_answer 테이블이 존재하면 외래키 제약조건 추가"""
+        try:
+            # interview_answer 테이블 존재 확인
+            if await self._table_exists(cursor, "interview_answer"):
+                constraint_name = "answer_score_ibfk_1"
+                if not await self._foreign_key_exists(cursor, table_name, constraint_name):
+                    logger.info(f"  외래키 제약조건 '{constraint_name}' 추가 중...")
+                    await cursor.execute(f"""
+                        ALTER TABLE {table_name} 
+                        ADD CONSTRAINT {constraint_name}
+                        FOREIGN KEY (INTV_ANS_ID) REFERENCES interview_answer(INTV_ANS_ID)
+                        ON DELETE CASCADE ON UPDATE CASCADE
+                    """)
+                    logger.info(f"  외래키 제약조건 '{constraint_name}' 추가 완료")
+                else:
+                    logger.info(f"  외래키 제약조건 '{constraint_name}'이 이미 존재합니다.")
+            else:
+                logger.info("  interview_answer 테이블이 존재하지 않아 외래키 제약조건을 추가하지 않습니다.")
+        except Exception as e:
+            logger.warning(f"  외래키 제약조건 추가 중 오류 (무시하고 계속): {e}")
+
+    async def _create_or_update_interview_answer_table(self, cursor):
+        """interview_answer 테이블이 존재하지 않을 때만 생성"""
+        table_name = "interview_answer"
+        
+        if not await self._table_exists(cursor, table_name):
+            # 테이블이 없으면 기존 구조에 맞춰 새로 생성 (외래키 제약조건 제외)
+            logger.info(f"{table_name} 테이블이 존재하지 않아 새로 생성합니다.")
+            create_sql = """
+            CREATE TABLE interview_answer (
+                INTV_ANS_ID BIGINT NOT NULL AUTO_INCREMENT,
+                INTV_Q_ASSIGN_ID BIGINT NOT NULL,
+                ANS_TXT TEXT DEFAULT NULL,
+                RGS_DTM TIMESTAMP NULL DEFAULT NULL,
+                USER_ID VARCHAR(100) DEFAULT NULL COMMENT '사용자 ID',
+                QUESTION_NUM INT DEFAULT NULL COMMENT '질문 번호',
+                ANSWER_TEXT TEXT DEFAULT NULL COMMENT '답변 내용',
+                UPD_DTM TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
+                PRIMARY KEY (INTV_ANS_ID),
+                KEY INTV_Q_ASSIGN_ID (INTV_Q_ASSIGN_ID)
+            ) ENGINE=InnoDB AUTO_INCREMENT=10010 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+            """
+            await cursor.execute(create_sql)
+            logger.info(f"{table_name} 테이블 생성 완료 (외래키 제약조건 제외)")
+        else:
+            # 테이블이 존재하면 아무것도 하지 않음
+            logger.info(f"{table_name} 테이블이 이미 존재합니다. 수정하지 않습니다.")
+
+    async def _ensure_interview_answer_exists(self, cursor, intv_ans_id: int, user_id: str, question_num: int):
+        """interview_answer 테이블에 레코드가 존재하는지 확인하고 없으면 생성"""
+        try:
+            # interview_answer 테이블이 존재하는지 확인
+            if not await self._table_exists(cursor, "interview_answer"):
+                logger.warning("interview_answer 테이블이 존재하지 않습니다.")
+                return False
+            
+            # 레코드 존재 확인
+            await cursor.execute("SELECT COUNT(*) FROM interview_answer WHERE INTV_ANS_ID = %s", (intv_ans_id,))
+            result = await cursor.fetchone()
+            
+            if result and result[0] > 0:
+                logger.info(f"interview_answer 레코드가 이미 존재합니다: INTV_ANS_ID={intv_ans_id}")
+                return True
+            
+            # 레코드가 없으면 기존 테이블 구조에 맞춰 생성
+            logger.info(f"interview_answer 레코드 생성 중: INTV_ANS_ID={intv_ans_id}")
+            
+            # 기존 테이블 구조에 맞춰 최소한의 필수 값으로 레코드 생성
+            # INTV_Q_ASSIGN_ID는 필수이므로 임시값 사용 (1)
+            insert_sql = """
+            INSERT INTO interview_answer (INTV_ANS_ID, INTV_Q_ASSIGN_ID, USER_ID, QUESTION_NUM, RGS_DTM) 
+            VALUES (%s, %s, %s, %s, NOW())
+            ON DUPLICATE KEY UPDATE UPD_DTM = NOW()
+            """
+            await cursor.execute(insert_sql, (intv_ans_id, 1, user_id, question_num))
+            
+            logger.info(f"interview_answer 레코드 생성 완료: INTV_ANS_ID={intv_ans_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"interview_answer 레코드 생성 중 오류: {e}")
+            return False
+
+    async def _remove_foreign_key_constraint(self, cursor, table_name: str, constraint_name: str):
+        """외래키 제약조건 제거"""
+        try:
+            # 외래키 제약조건이 존재하는지 확인
+            if await self._foreign_key_exists(cursor, table_name, constraint_name):
+                logger.info(f"  외래키 제약조건 '{constraint_name}' 제거 중...")
+                await cursor.execute(f"ALTER TABLE {table_name} DROP FOREIGN KEY {constraint_name}")
+                logger.info(f"  외래키 제약조건 '{constraint_name}' 제거 완료")
+            else:
+                logger.info(f"  외래키 제약조건 '{constraint_name}'이 존재하지 않습니다.")
+        except Exception as e:
+            logger.warning(f"  외래키 제약조건 제거 중 오류 (무시하고 계속): {e}")
 
     async def _create_or_update_category_result_table(self, cursor):
         """answer_category_result 테이블 생성 또는 컬럼 추가"""
@@ -260,32 +365,40 @@ class MariaDBService:
             await self._ensure_foreign_key_exists(cursor, table_name)
 
     def _generate_safe_id(self, user_id: str, question_num: int, suffix: str = "") -> int:
-        """안전한 ID 생성 (오버플로우 방지)"""
+        """안전한 ID 생성 (user_id + 0 + question_num 형식)"""
         try:
             # user_id가 숫자인 경우 그대로 사용
             if user_id.isdigit():
                 user_id_num = int(user_id)
-                # 너무 큰 숫자는 모듈로 연산으로 제한
-                if user_id_num > 99999:
-                    user_id_num = user_id_num % 99999 + 1
             else:
-                # 문자열인 경우 해시 사용
-                user_id_num = abs(hash(user_id)) % 99999 + 1
+                # 문자열인 경우 해시 사용하되 적당한 크기로 제한
+                user_id_num = abs(hash(user_id)) % 999 + 1
+            
+            # question_num이 너무 크면 제한
+            if question_num > 99:
+                question_num = question_num % 99 + 1
             
             # ID 형식: {user_id}0{question_num}{suffix}
+            # 예: user_id=2, question_num=3 -> 203
+            # 예: user_id=2, question_num=3, suffix="1" -> 2031
             id_str = f"{user_id_num}0{question_num}{suffix}"
             generated_id = int(id_str)
+            
+            logger.info(f"ID 생성: user_id={user_id} -> {user_id_num}, question_num={question_num}, suffix='{suffix}' -> ANS_SCORE_ID={generated_id}")
             
             # MySQL BIGINT 범위 확인 (최대 9223372036854775807)
             if generated_id > 9223372036854775807:
                 # 너무 큰 경우 해시 사용
-                generated_id = abs(hash(f"{user_id}_{question_num}_{suffix}")) % (10**15)
+                generated_id = abs(hash(f"{user_id}_{question_num}_{suffix}")) % (10**10)
+                logger.warning(f"ID가 너무 커서 해시로 변경: {generated_id}")
             
             return generated_id
             
-        except (ValueError, OverflowError):
+        except (ValueError, OverflowError) as e:
             # 모든 실패 시 해시 사용
-            return abs(hash(f"{user_id}_{question_num}_{suffix}")) % (10**15)
+            fallback_id = abs(hash(f"{user_id}_{question_num}_{suffix}")) % (10**10)
+            logger.error(f"ID 생성 실패, 해시 사용: {e} -> {fallback_id}")
+            return fallback_id
 
     async def get_user_evaluations(self, user_id: str) -> List[Dict[str, Any]]:
         """사용자별 평가 결과 조회"""
@@ -373,6 +486,12 @@ class MariaDBService:
                         await conn.begin()
                         
                         try:
+                            # interview_answer 테이블에 레코드 생성
+                            if not await self._ensure_interview_answer_exists(cursor, intv_ans_id, user_id, question_num):
+                                logger.warning(f"interview_answer 레코드가 생성되지 않아 평가를 저장할 수 없습니다. INTV_ANS_ID={intv_ans_id}")
+                                await conn.rollback()
+                                return False
+
                             # answer_score 테이블에 기본 평가 정보 저장
                             insert_answer_score_sql = """
                             INSERT INTO answer_score (

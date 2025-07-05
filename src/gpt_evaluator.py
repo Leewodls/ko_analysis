@@ -620,8 +620,8 @@ class GPTEvaluator:
                 'category': category,
                 'strengths': strengths,
                 'weaknesses': weaknesses,
-                'strength_keyword': ', '.join(strengths) if strengths else '',  # MariaDB용 문자열 형태 추가
-                'weakness_keyword': ', '.join(weaknesses) if weaknesses else '',  # MariaDB용 문자열 형태 추가
+                'strength_keyword': '\n'.join(strengths) if strengths else '',  # MariaDB용 문자열 형태 추가
+                'weakness_keyword': '\n'.join(weaknesses) if weaknesses else '',  # MariaDB용 문자열 형태 추가
                 'raw_feedback': feedback_text
             }
             
@@ -636,7 +636,7 @@ class GPTEvaluator:
             'category': category,
             'strengths': [f'기본적인 {category} 능력'],
             'weaknesses': ['평가 데이터 부족'],
-            'strength_keyword': f'기본적인 {category} 능력',  # MariaDB용 문자열 형태 추가
-            'weakness_keyword': '평가 데이터 부족',  # MariaDB용 문자열 형태 추가
+            'strength_keyword': '발화 없음',  # MariaDB용 문자열 형태 추가
+            'weakness_keyword': '발화 없음',  # MariaDB용 문자열 형태 추가
             'raw_feedback': f'평가총점 : 0\n강점:\n기본적인 {category} 능력\n약점:\n평가 데이터 부족'
         } 

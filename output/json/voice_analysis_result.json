@@ -1,114 +1,35 @@
 {
     "scores_result": {
-        "total_score": 10,
+        "total_score": 20,
         "individual_scores": {
-            "pause_score": 0,
-            "speech_rate_score": 10
+            "pause_score": 20,
+            "speech_rate_score": 0
         },
         "details": {
-            "pause_ratio": 25.74,
-            "avg_speech_rate": 4.64
+            "pause_ratio": 0.0,
+            "avg_speech_rate": 3.33
         }
     },
     "speech_rate_result": [
         {
-            "syllables_per_second": 1.0,
+            "syllables_per_second": 3.3333333333333335,
             "start_time": 0.0,
-            "end_time": 1.0
-        },
-        {
-            "syllables_per_second": 5.0,
-            "start_time": 1.0,
-            "end_time": 2.0
-        },
-        {
-            "syllables_per_second": 5.0,
-            "start_time": 2.0,
-            "end_time": 3.0
-        },
-        {
-            "syllables_per_second": 8.0,
-            "start_time": 3.0,
-            "end_time": 4.0
-        },
-        {
-            "syllables_per_second": 5.0,
-            "start_time": 4.0,
-            "end_time": 5.0
-        },
-        {
-            "syllables_per_second": 5.0,
-            "start_time": 5.0,
-            "end_time": 6.0
-        },
-        {
-            "syllables_per_second": 5.0,
-            "start_time": 6.0,
-            "end_time": 7.0
-        },
-        {
-            "syllables_per_second": 4.0,
-            "start_time": 7.0,
-            "end_time": 8.0
-        },
-        {
-            "syllables_per_second": 6.0,
-            "start_time": 8.0,
-            "end_time": 9.0
-        },
-        {
-            "syllables_per_second": 4.0,
-            "start_time": 9.0,
-            "end_time": 10.0
-        },
-        {
-            "syllables_per_second": 7.0,
-            "start_time": 10.0,
-            "end_time": 11.0
-        },
-        {
-            "syllables_per_second": 5.0,
-            "start_time": 11.0,
-            "end_time": 12.0
-        },
-        {
-            "syllables_per_second": 6.0,
-            "start_time": 12.0,
-            "end_time": 13.0
-        },
-        {
-            "syllables_per_second": 3.0,
-            "start_time": 13.0,
-            "end_time": 14.0
-        },
-        {
-            "syllables_per_second": 3.0,
-            "start_time": 14.0,
-            "end_time": 15.0
-        },
-        {
-            "syllables_per_second": 2.189681127685781,
-            "start_time": 15.0,
-            "end_time": 15.9
+            "end_time": 0.3
         }
     ],
     "pause_analysis_result": {
-        "total_duration": 15.913375,
-        "pause_duration": 4.096,
-        "pause_ratio": 25.73935447383098,
-        "pause_count": 3,
-        "grade": "미흡",
-        "description": "전달력이 낮음 (논문 기준: 25.7%~28.0%)",
-        "pause_segments": [
-            2.176,
-            0.5440000000000005,
-            1.3759999999999994
-        ]
+        "total_duration": 0.3,
+        "pause_duration": 0,
+        "pause_ratio": 0.0,
+        "pause_count": 0,
+        "grade": "우수",
+        "description": "전달력이 높음 (논문 기준: 14.8%~15.9%)",
+        "pause_segments": []
     },
     "summary": {
-        "total_segments": 16,
-        "avg_speech_rate": 4.64,
-        "pause_ratio": 25.74,
-        "total_score": 10
+        "total_segments": 1,
+        "avg_speech_rate": 3.33,
+        "pause_ratio": 0.0,
+        "total_score": 20
     }
 }

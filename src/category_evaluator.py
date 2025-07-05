@@ -71,7 +71,7 @@ class CategoryEvaluator:
             logger.info(f"질문 {question_num}번에 대한 카테고리 평가 시작: {categories}")
             
             # 발화가 없는 경우 GPT에게 명시적으로 전달
-            evaluation_text = stt_text.strip() if stt_text.strip() else "발화 없음 (무응답)"
+            evaluation_text = stt_text.strip() if stt_text.strip() else "발화 없음"
             
             for category in categories:
                 if category == 'COMMUNICATION':
@@ -166,7 +166,9 @@ class CategoryEvaluator:
                         'total_text_score': max(0, min(60, result.get('total_text_score', 30))),
                         'detailed_scores': result.get('detailed_scores', {}),
                         'feedback': result.get('feedback', {}),
-                        'score': max(0, min(60, result.get('total_text_score', 30)))  # 호환성을 위해 추가
+                        'score': max(0, min(60, result.get('total_text_score', 30))),  # 호환성을 위해 추가
+                        'strength_keyword': result.get('strength_keyword', ''),
+                        'weakness_keyword': result.get('weakness_keyword', '')
                     }
                 else:
                     return {
@@ -216,12 +218,12 @@ class CategoryEvaluator:
         
         # 발화 없음 처리 지침
         no_speech_instruction = ""
-        if stt_text.strip() == "발화 없음 (무응답)" or not stt_text.strip():
+        if stt_text.strip() == "발화 없음" or not stt_text.strip():
             no_speech_instruction = """
 **중요: 이 답변은 발화가 없거나 무응답입니다.**
 - 모든 점수는 0점으로 평가해주세요
-- 강점 키워드: 빈 문자열 또는 빈 배열
-- 약점 키워드: "발화 없음", "무응답", "답변 부재" 등 무응답 관련 키워드
+- 강점 키워드: 발화 없음
+- 약점 키워드: 발화 없음
 - 평가 코멘트: 발화가 없어 평가할 수 없음을 명시
 
 """
@@ -281,17 +283,27 @@ class CategoryEvaluator:
     "feedback": {
         "strengths": ["강점1", "강점2"],
         "improvements": ["개선점1", "개선점2"]
-    }
+    },
+    "strength_keyword": "강점키워드1\\n강점키워드2\\n강점키워드3",
+    "weakness_keyword": "약점키워드1\\n약점키워드2\\n약점키워드3"
 }
+
+주의사항:
+- strength_keyword와 weakness_keyword는 각 키워드를 개행문자(\\n)로 구분해주세요
+- 무응답인 경우 weakness_keyword에 발화 없음 형태로 작성해주세요
 """
         else:
             return """
 응답은 반드시 다음 JSON 형식으로 작성해주세요:
 {
     "score": [0-100 점수],
-    "strength_keyword": "[강점을 나타내는 키워드나 문구]",
-    "weakness_keyword": "[약점을 나타내는 키워드나 문구]"
+    "strength_keyword": "강점키워드1\\n강점키워드2\\n강점키워드3",
+    "weakness_keyword": "약점키워드1\\n약점키워드2\\n약점키워드3"
 }
+
+주의사항:
+- strength_keyword와 weakness_keyword는 각 키워드를 개행문자(\\n)로 구분해주세요
+- 무응답인 경우 weakness_keyword에 발화 없음 형태로 작성해주세요
 """
     
     def _build_structured_feedback_format(self, structure: dict, style_guide: str) -> str:
@@ -394,8 +406,8 @@ class CategoryEvaluator:
             
             result = {
                 'score': max(0, min(100, final_score)),
-                'strength_keyword': ', '.join(strengths) if strengths else '',
-                'weakness_keyword': ', '.join(weaknesses) if weaknesses else '',
+                'strength_keyword': '\n'.join(strengths) if strengths else '',
+                'weakness_keyword': '\n'.join(weaknesses) if weaknesses else '',
                 'detailed_feedback': {
                     'strengths': strengths,
                     'weaknesses': weaknesses,
@@ -887,13 +899,15 @@ class CategoryEvaluator:
                     'strengths': [],
                     'improvements': []
                 },
-                'score': 0
+                'score': 0,
+                'strength_keyword': '발화 없음',
+                'weakness_keyword': '발화 없음'
             }
         else:
             return {
                 'score': 0,
-                'strength_keyword': '',
-                'weakness_keyword': '',
+                'strength_keyword': '발화 없음',
+                'weakness_keyword': '발화 없음',
                 'detailed_feedback': {}
             }
     
@@ -909,10 +923,10 @@ class CategoryEvaluator:
         """
         try:
             # 발화 없음 처리
-            evaluation_text = stt_text.strip() if stt_text.strip() else "발화 없음 (무응답)"
+            evaluation_text = stt_text.strip() if stt_text.strip() else "발화 없음"
             no_speech_note = ""
-            if evaluation_text == "발화 없음 (무응답)":
-                no_speech_note = "\n\n**주의: 발화가 없는 경우이므로 '답변 없음' 또는 '무응답'으로 요약해주세요.**"
+            if evaluation_text == "발화 없음":
+                no_speech_note = "\n\n**주의: 발화가 없는 경우이므로 발화 없음으로 답변해주세요.**"
             
             prompt = f"""
 다음 면접 답변을 간결하게 요약해주세요 (2-3문장):
