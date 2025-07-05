@@ -191,7 +191,7 @@ class S3Service:
                 logger.warning(f"디버깅 정보 수집 실패: {debug_e}")
             
             raise
-
+    
     async def _download_from_s3_path_with_search(self, s3_url: str, local_dir: str) -> str:
         """s3://bucket/key 형식의 URL에서 다운로드 (키 검색 포함)"""
         if not self.s3_client:
@@ -285,9 +285,9 @@ class S3Service:
         with open(local_path, 'wb') as f:
             f.write(response['Body'].read())
         
-        logger.info(f"S3에서 파일 다운로드 완료: {local_path}")
-        return local_path
-    
+            logger.info(f"S3에서 파일 다운로드 완료: {local_path}")
+            return local_path
+            
     async def _download_from_s3_path(self, s3_url: str, local_dir: str) -> str:
         """s3://bucket/key 형식의 URL에서 다운로드 (레거시)"""
         # 새로운 검색 기능이 있는 메소드로 리디렉션

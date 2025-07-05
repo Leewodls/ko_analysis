@@ -19,8 +19,9 @@ def extract_user_info_from_s3_key(s3_object_key: str) -> Tuple[Optional[str], Op
     S3 Object Key에서 user_id와 question_num 추출
     
     예상 경로 패턴:
-    - team12/interview_audio/{userId}/{question_num}/{파일명}
-    - bucket-name/path/{userId}/{question_num}/file.webm
+    - team12/interview_video/{user_id}/{question_id}/{파일명}
+    - team12/interview_audio/{user_id}/{question_id}/{파일명}
+    - bucket-name/path/{user_id}/{question_id}/file.webm
     
     Args:
         s3_object_key: S3 Object Key 또는 URL
@@ -38,20 +39,28 @@ def extract_user_info_from_s3_key(s3_object_key: str) -> Tuple[Optional[str], Op
                 clean_key = parts[1]
         
         path_parts = clean_key.split('/')
+        logger.debug(f"S3 경로 파싱: {s3_object_key} -> {path_parts}")
         
-        # 패턴 1: team12/interview_audio/{userId}/{question_num}/{파일명}
-        if len(path_parts) >= 4 and 'interview_audio' in path_parts:
-            interview_idx = path_parts.index('interview_audio')
-            if interview_idx + 2 < len(path_parts):
-                user_id = path_parts[interview_idx + 1]
-                question_part = path_parts[interview_idx + 2]
-                
-                # 숫자 추출
-                question_match = re.search(r'([0-9]+)', question_part)
-                if question_match:
-                    return user_id, int(question_match.group(1))
+        # 패턴 1: team12/interview_video/{user_id}/{question_id}/{파일명}
+        # 패턴 2: team12/interview_audio/{user_id}/{question_id}/{파일명}
+        if len(path_parts) >= 4:
+            for interview_type in ['interview_video', 'interview_audio']:
+                if interview_type in path_parts:
+                    interview_idx = path_parts.index(interview_type)
+                    if interview_idx + 2 < len(path_parts):
+                        user_id = path_parts[interview_idx + 1]
+                        question_id = path_parts[interview_idx + 2]
+                        
+                        # user_id와 question_id가 숫자인지 확인
+                        try:
+                            question_num = int(question_id)
+                            logger.info(f"S3 경로에서 추출 성공: user_id={user_id}, question_num={question_num}")
+                            return user_id, question_num
+                        except ValueError:
+                            logger.warning(f"question_id가 숫자가 아님: {question_id}")
+                            continue
         
-        # 패턴 2: 파일명에서 추출
+        # 패턴 3: 파일명에서 추출
         filename = path_parts[-1] if path_parts else s3_object_key
         filename_no_ext = filename.rsplit('.', 1)[0]
         
@@ -59,19 +68,21 @@ def extract_user_info_from_s3_key(s3_object_key: str) -> Tuple[Optional[str], Op
         pattern = r'user([a-zA-Z0-9_-]+)_(?:question|q)([0-9]+)'
         match = re.search(pattern, filename_no_ext, re.IGNORECASE)
         if match:
+            logger.info(f"파일명에서 추출 성공 (패턴1): user_id={match.group(1)}, question_num={int(match.group(2))}")
             return match.group(1), int(match.group(2))
         
         # 단순 {userid}_{questionnum} 패턴  
         simple_pattern = r'([a-zA-Z0-9_-]+)_([0-9]+)'
         simple_match = re.search(simple_pattern, filename_no_ext)
         if simple_match:
+            logger.info(f"파일명에서 추출 성공 (패턴2): user_id={simple_match.group(1)}, question_num={int(simple_match.group(2))}")
             return simple_match.group(1), int(simple_match.group(2))
             
-        logger.debug(f"S3 경로에서 사용자 정보 추출 실패: {s3_object_key}")
+        logger.warning(f"S3 경로에서 사용자 정보 추출 실패: {s3_object_key}")
         return None, None
         
     except Exception as e:
-        logger.warning(f"S3 경로 파싱 오류: {s3_object_key} - {str(e)}")
+        logger.error(f"S3 경로 파싱 오류: {s3_object_key} - {str(e)}")
         return None, None
 
 def format_s3_url(s3_object_key: str) -> str:

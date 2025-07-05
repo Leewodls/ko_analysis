@@ -39,7 +39,7 @@ openai-whisper
 # File handling & Cloud
 boto3
 botocore
-ffmpeg-python
+# ffmpeg-python  # 호환성 문제로 제거, subprocess 방식 사용
 
 # Environment & Utils
 python-dotenv
