@@ -23,6 +23,7 @@ class MongoDBService:
         self.client = None
         self.db = None
         self.collection = None
+        self.is_connected = False  # 연결 상태 추적
         
         # 환경변수에서 MongoDB 설정 가져오기
         self.mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
@@ -46,19 +47,21 @@ class MongoDBService:
             # 인덱스 생성 (userId, question_num 조합으로)
             await self.collection.create_index([("userId", 1), ("question_num", 1)], unique=True)
             
+            self.is_connected = True
             logger.info("MongoDB 연결 성공")
             
         except ConnectionFailure as e:
-            logger.error(f"MongoDB 연결 실패: {e}")
-            raise
+            logger.warning(f"MongoDB 연결 실패 - MongoDB 기능 비활성화: {e}")
+            self.is_connected = False
         except Exception as e:
-            logger.error(f"MongoDB 초기화 중 오류: {e}")
-            raise
+            logger.warning(f"MongoDB 초기화 중 오류 - MongoDB 기능 비활성화: {e}")
+            self.is_connected = False
     
     async def disconnect(self):
         """MongoDB 연결 해제"""
         if self.client:
             self.client.close()
+            self.is_connected = False
             logger.info("MongoDB 연결 해제됨")
     
     async def save_korean_analysis_result(self, 
@@ -90,6 +93,10 @@ class MongoDBService:
         Returns:
             bool: 저장 성공 여부
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 저장 스킵")
+            return False
+            
         try:
             # 요구사항에 맞는 필드 구성
             document = {
@@ -135,6 +142,10 @@ class MongoDBService:
         Returns:
             Optional[Dict]: 분석 결과 또는 None
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 조회 스킵")
+            return None
+            
         try:
             result = await self.collection.find_one(
                 {"userId": user_id, "question_num": question_num}
@@ -163,6 +174,10 @@ class MongoDBService:
         Returns:
             List[Dict]: 분석 기록 리스트
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 기록 조회 스킵")
+            return []
+            
         try:
             cursor = self.collection.find(
                 {"userId": user_id}
@@ -191,6 +206,10 @@ class MongoDBService:
         Returns:
             bool: 삭제 성공 여부
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 삭제 스킵")
+            return False
+            
         try:
             result = await self.collection.delete_one(
                 {"userId": user_id, "question_num": question_num}
@@ -214,6 +233,10 @@ class MongoDBService:
         Returns:
             Dict: 통계 정보
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 통계 조회 스킵")
+            return {"total_analyses": 0, "average_scores": {}}
+            
         try:
             total_count = await self.collection.count_documents({})
             
@@ -260,6 +283,10 @@ class MongoDBService:
         Returns:
             bool: 저장 성공 여부
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 직무적합도 세부 점수 저장 스킵")
+            return False
+            
         try:
             # 직무적합도 세부 점수 전용 컬렉션 설정
             detailed_collection = self.db['job_compatibility_detailed_scores']
@@ -343,6 +370,10 @@ class MongoDBService:
         Returns:
             bool: 저장 성공 여부
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 기술적 전문성 세부 항목 저장 스킵")
+            return False
+            
         try:
             # 기술적 전문성 전용 컬렉션 설정
             tech_collection = self.db['technical_expertise_details']
@@ -386,6 +417,10 @@ class MongoDBService:
         Returns:
             Optional[Dict]: 직무적합도 세부 점수 또는 None
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 직무적합도 세부 점수 조회 스킵")
+            return None
+            
         try:
             detailed_collection = self.db['job_compatibility_detailed_scores']
             
@@ -417,6 +452,10 @@ class MongoDBService:
         Returns:
             Optional[Dict]: 기술적 전문성 세부 항목 또는 None
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 기술적 전문성 세부 항목 조회 스킵")
+            return None
+            
         try:
             tech_collection = self.db['technical_expertise_details']
             
@@ -455,6 +494,10 @@ class MongoDBService:
         Returns:
             bool: 저장 성공 여부
         """
+        if not self.is_connected:
+            logger.warning("MongoDB 연결되지 않음 - 종합 점수 저장 스킵")
+            return False
+            
         try:
             # 점수 컬렉션 설정 (기존과 구분)
             scores_collection = self.db['analysis_comprehensive_scores']

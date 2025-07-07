@@ -1,35 +1,42 @@
 {
     "scores_result": {
-        "total_score": 20,
+        "total_score": 10,
         "individual_scores": {
-            "pause_score": 20,
-            "speech_rate_score": 0
+            "pause_score": 0,
+            "speech_rate_score": 10
         },
         "details": {
-            "pause_ratio": 0.0,
-            "avg_speech_rate": 3.33
+            "pause_ratio": 49.23,
+            "avg_speech_rate": 4.57
         }
     },
     "speech_rate_result": [
         {
-            "syllables_per_second": 3.3333333333333335,
+            "syllables_per_second": 2.0,
             "start_time": 0.0,
-            "end_time": 0.3
+            "end_time": 1.0
+        },
+        {
+            "syllables_per_second": 7.142857142857142,
+            "start_time": 1.0,
+            "end_time": 1.6
         }
     ],
     "pause_analysis_result": {
-        "total_duration": 0.3,
-        "pause_duration": 0,
-        "pause_ratio": 0.0,
-        "pause_count": 0,
-        "grade": "우수",
-        "description": "전달력이 높음 (논문 기준: 14.8%~15.9%)",
-        "pause_segments": []
+        "total_duration": 1.56,
+        "pause_duration": 0.768,
+        "pause_ratio": 49.230769230769226,
+        "pause_count": 1,
+        "grade": "미흡",
+        "description": "전달력이 낮음 (논문 기준: 25.7%~28.0%)",
+        "pause_segments": [
+            0.768
+        ]
     },
     "summary": {
-        "total_segments": 1,
-        "avg_speech_rate": 3.33,
-        "pause_ratio": 0.0,
-        "total_score": 20
+        "total_segments": 2,
+        "avg_speech_rate": 4.57,
+        "pause_ratio": 49.23,
+        "total_score": 10
     }
 }

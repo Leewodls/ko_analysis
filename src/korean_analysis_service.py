@@ -42,7 +42,7 @@ class KoreanAnalysisService:
         try:
             logger.info("서비스 초기화 시작...")
             
-            # MongoDB 연결
+            # MongoDB 연결 (실패해도 계속 진행)
             await self.mongodb_service.connect()
             
             # MariaDB 연결  
